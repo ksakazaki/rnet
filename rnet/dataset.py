@@ -6,7 +6,7 @@ from functools import partial
 from typing import Dict, List, Set, Tuple, Union
 import numpy as np
 import pandas as pd
-from rnet.coordinates import transform_coords, idw_query
+from rnet.coordinates import transform_coords, idw_query, densify
 from rnet.geometry import polyline_length
 
 
@@ -508,7 +508,7 @@ class ConnectionData(Dataset):
         interval : float
             Interval between densified points.
         '''
-        self._df['coords'] = list(map(partial(_densify, interval=interval),
+        self._df['coords'] = list(map(partial(densify, interval=interval),
                                       self.coords(2)))
 
     @property
@@ -814,34 +814,3 @@ class EdgeData(ConnectionData):
             EPSG code of the destination CRS.
         '''
         raise NotImplementedError
-
-
-def _densify(points: np.ndarray, interval: float) -> np.ndarray:
-    '''
-    Return densified sequence of points.
-
-    Points are inserted at a fixed interval between adjacent points.
-
-    Parameters
-    ----------
-    points : :class:`~numpy.ndarray`, shape (N, 2)
-        Original sequence of points.
-    interval : float
-        Interval between newly added points.
-
-    Returns
-    -------
-    densified : :class:`~numpy.ndarray`
-        Densified sequence of points.
-    '''
-    densified = []
-    for i, diff in enumerate(np.diff(points, axis=0)):
-        densified.append(points[i])
-        norm = np.linalg.norm(diff)
-        unit = diff / norm * interval
-        num_segments = int(norm / interval)
-        if num_segments:
-            densified.append(
-                densified[-1] + unit * np.vstack(np.arange(1, num_segments+1)))
-    densified.append(points[-1])
-    return np.vstack(densified)

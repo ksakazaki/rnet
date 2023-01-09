@@ -8,6 +8,37 @@ from rnet import gdal_merge
 from rnet.utils import random_string
 
 
+def densify(points: np.ndarray, interval: float) -> np.ndarray:
+    '''
+    Return densified sequence of points.
+
+    Points are inserted at a fixed interval between adjacent points.
+
+    Parameters
+    ----------
+    points : :class:`~numpy.ndarray`, shape (N, 2)
+        Original sequence of points.
+    interval : float
+        Interval between newly added points.
+
+    Returns
+    -------
+    densified : :class:`~numpy.ndarray`, shape (N, 2)
+        Densified sequence of points.
+    '''
+    densified = []
+    for i, diff in enumerate(np.diff(points, axis=0)):
+        densified.append(points[i])
+        norm = np.linalg.norm(diff)
+        unit = diff / norm * interval
+        num_segments = int(norm / interval)
+        if num_segments:
+            densified.append(
+                densified[-1] + unit * np.vstack(np.arange(1, num_segments+1)))
+    densified.append(points[-1])
+    return np.vstack(densified)
+
+
 def idw_query(points: np.ndarray, crs: int, *paths: str, r: float = 1e-3,
               p: int = 2, return_xy: bool = False) -> np.ndarray:
     '''
