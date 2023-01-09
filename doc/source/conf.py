@@ -66,6 +66,21 @@ exclude_patterns = []
 #
 html_theme = 'pydata_sphinx_theme'
 
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ksakazaki/rnet",
+            "icon": "fab fa-github-square",
+            "type": "fontawesome",
+        }
+   ]
+}
+
+html_context = {
+    "github_repo": "https://github.com/ksakazaki/rnet"
+}
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
