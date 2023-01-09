@@ -6,5 +6,6 @@ Utilities
 .. autosummary::
    :toctree:
 
+   densify
    idw_query
    transform_coords
