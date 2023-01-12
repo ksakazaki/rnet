@@ -499,7 +499,7 @@ class ConnectionData(Dataset):
         '''
         pass
 
-    def densify(self, interval: float):
+    def densify(self, interval: float) -> None:
         '''
         Densify connections in the dataset.
 
@@ -538,7 +538,7 @@ class ConnectionData(Dataset):
         return self._directed
 
     @abstractmethod
-    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2):
+    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2) -> None:
         '''
         Compute elevations and update :math:`z`-coordinates.
 
@@ -562,7 +562,7 @@ class ConnectionData(Dataset):
         '''
         pass
 
-    def flatten(self):
+    def flatten(self) -> None:
         '''
         Remove :math:`z`-coordinates from all connections.
 
@@ -575,7 +575,8 @@ class ConnectionData(Dataset):
         self._df['coords'] = list(xy)
         self._df['length'] = list(map(polyline_length, xy))
 
-    def get(self, i: int = None, j: int = None) -> Union[Connection, List[Connection]]:
+    def get(self, i: int = None, j: int = None
+            ) -> Union[Connection, List[Connection]]:
         '''
         Retrieve from the dataset a specific connection, :math:`(i, j)`,
         connections starting from point :math:`i`, or connections ending
@@ -694,7 +695,7 @@ class LinkData(ConnectionData):
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
 
-    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2):
+    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2) -> None:
         '''
         Compute :math:`z`-coordinates and update data frame.
 
@@ -730,7 +731,12 @@ class LinkData(ConnectionData):
         dst : int
             EPSG code of the destination CRS.
         '''
-        raise NotImplementedError
+        transformed = transform_coords(
+            np.vstack(self._df['coords']), src=self.crs, dst=dst
+            ).reshape(-1,2,self.dims)
+        self._df['coords'] = list(transformed)
+        self._df['length'] = list(map(polyline_length, transformed))
+        self._crs = dst
 
 
 @dataclass
@@ -773,7 +779,7 @@ class EdgeData(ConnectionData):
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
 
-    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2):
+    def elevate(self, *paths: str, r: float = 1e-3, p: int = 2) -> None:
         '''
         Compute :math:`z`-coordinates and update data frame.
 
@@ -804,7 +810,7 @@ class EdgeData(ConnectionData):
         self._df['coords'] = coords
         self._df['length'] = list(map(polyline_length, coords))
 
-    def transform(self):
+    def transform(self, dst: int) -> None:
         '''
         Transform edge coordinates to another CRS.
 
@@ -813,4 +819,12 @@ class EdgeData(ConnectionData):
         dst : int
             EPSG code of the destination CRS.
         '''
-        raise NotImplementedError
+        transformed = transform_coords(
+            np.vstack(self._df['coords']), src=self.crs, dst=dst)
+        coords = []
+        for length in map(len, self._df['coords']):
+            coords.append(transformed[:length])
+            transformed = transformed[length:]
+        self._df['coords'] = list(coords)
+        self._df['length'] = list(map(polyline_length, coords))
+        self._crs = dst
