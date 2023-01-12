@@ -332,7 +332,12 @@ class Model:
         dst : int
             EPSG code of destination CRS.
         '''
-        raise NotImplementedError
+        self.nodes.transform(dst)
+        self.edges.transform(dst)
+        if self.vertices is not None:
+            self.vertices.transform(dst)
+        if self.links is not None:
+            self.links.transform(dst)
 
 
 def model(*paths, crs: int = 4326, keep_vertices: bool = False,
