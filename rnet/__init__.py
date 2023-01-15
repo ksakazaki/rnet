@@ -6,5 +6,5 @@ from rnet.coordinates import *
 from rnet.model import *
 from rnet.utils import *
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 __author__ = 'Kota Sakazaki'
