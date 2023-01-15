@@ -3,6 +3,7 @@ from collections import defaultdict
 import dataclasses
 from dataclasses import dataclass
 from functools import partial
+import sys
 from typing import Dict, List, Set, Tuple, Union
 import numpy as np
 import pandas as pd
@@ -109,12 +110,14 @@ class Dataset(ABC):
             which columns are exported by passing a list of column
             names. The default is 'active'.
         '''
+        np.set_printoptions(threshold=sys.maxsize)
         if columns == 'active':
             self.df.to_csv(path_to_csv)
         elif columns == 'all':
             self._df.to_csv(path_to_csv)
         else:
             self._df[columns].to_csv(path_to_csv)
+        np.set_printoptions(threshold=1000)
 
     @classmethod
     def from_csv(cls, path_to_csv: str, crs: int):
