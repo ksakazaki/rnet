@@ -119,6 +119,28 @@ class Dataset(ABC):
             self._df[columns].to_csv(path_to_csv)
         np.set_printoptions(threshold=1000)
 
+    def to_pickle(self, path_to_pickle: str, *, columns: List[str] = 'active'
+                  ) -> None:
+        '''
+        Pickle dataset.
+
+        Parameters
+        ----------
+        path_to_pickle : str
+            Export path.
+        columns : {'active', 'all'} or List[str], optional
+            If 'active', then only active columns are exported. If
+            'all', then all columns are exported. Alternatively, specify
+            which columns are exported by passing a list of column
+            names. The default is 'active'.
+        '''
+        if columns == 'active':
+            self.df.to_pickle(path_to_pickle)
+        elif columns == 'all':
+            self._df.to_pickle(path_to_pickle)
+        else:
+            self._df[columns].to_pickle(path_to_pickle)
+
     @classmethod
     def from_csv(cls, path_to_csv: str, crs: int):
         '''
@@ -132,6 +154,20 @@ class Dataset(ABC):
             EPSG code of CRS in which coodinates are represented.
         '''
         return cls(pd.read_csv(path_to_csv), crs)
+
+    @classmethod
+    def from_pickle(cls, path_to_pickle: str, crs: int):
+        '''
+        Construct dataset from a pickle file
+
+        Parameters
+        ----------
+        path_to_pickle : str
+            Import path.
+        crs : int
+            EPSG code of CRS in which coodinates are represented.
+        '''
+        return cls(pd.read_csv(path_to_pickle), crs)
 
 
 def dataset(base: dataclass, layer_name: str = None):
