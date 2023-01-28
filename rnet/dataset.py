@@ -167,7 +167,7 @@ class Dataset(ABC):
         crs : int
             EPSG code of CRS in which coodinates are represented.
         '''
-        return cls(pd.read_csv(path_to_pickle), crs)
+        return cls(pd.read_pickle(path_to_pickle), crs)
 
 
 def dataset(base: dataclass, layer_name: str = None):
