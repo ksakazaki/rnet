@@ -393,24 +393,40 @@ class PointData(Dataset):
         '''
         self._df['z'] = None
 
-    def info(self) -> None:
+    def info(self, sep: str = '\n', ret: bool = False) -> None:
         '''
         Print dataset information.
+
+        Parameters
+        ----------
+        sep : str, optional
+            Separator between lines. The default is '\n'.
+        ret : bool, optional
+            If True, the information is returned as a string. Otherwise,
+            it is printed. The default is False.
+        
+        Returns
+        -------
+        info : str
+            If True, then the information is returned.
         '''
         coords = self.coords(2)
         xmin, ymin = np.min(coords, axis=0)
         xmax, ymax = np.max(coords, axis=0)
-        print(
-            self.__class__,
+        info = sep.join([
+            str(self.__class__),
             f'Count: {len(self):,}',
             f'CRS: EPSG:{self.crs}',
             f'dims: {self.dims}',
             f'xmin: {xmin:.07f}',
             f'ymin: {ymin:.07f}',
             f'xmax: {xmax:.07f}',
-            f'ymax: {ymax:.07f}',
-            sep='\n'
-        )
+            f'ymax: {ymax:.07f}'
+        ])
+        if ret:
+            return info
+        else:
+            print(info)
 
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
@@ -719,12 +735,40 @@ class ConnectionData(Dataset):
             out.append(element)
         return out[0] if len(out) == 1 else out
 
-    @abstractmethod
-    def info(self) -> None:
+    def info(self, sep: str = '\n', ret: bool = False) -> None:
         '''
         Print dataset information.
+
+        Parameters
+        ----------
+        sep : str, optional
+            Separator between lines. The default is '\n'.
+        ret : bool, optional
+            If True, the information is returned as a string. Otherwise,
+            it is printed. The default is False.
+        
+        Returns
+        -------
+        info : str
+            If True, then the information is returned.
         '''
-        pass
+        coords = np.vstack(self.coords(2))
+        xmin, ymin = np.min(coords, axis=0)
+        xmax, ymax = np.max(coords, axis=0)
+        info = sep.join([
+            str(self.__class__),
+            f'Count: {len(self):,}',
+            f'CRS: EPSG:{self.crs}',
+            f'dims: {self.dims}',
+            f'xmin: {xmin:.07f}',
+            f'ymin: {ymin:.07f}',
+            f'xmax: {xmax:.07f}',
+            f'ymax: {ymax:.07f}'
+        ])
+        if ret:
+            return info
+        else:
+            print(info)
 
     @abstractmethod
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
@@ -855,25 +899,6 @@ class LinkData(ConnectionData):
         self._df['coords'] = list(xyz)
         self._df['length'] = list(map(polyline_length, xyz))
 
-    def info(self) -> None:
-        '''
-        Print dataset information.
-        '''
-        coords = np.vstack(self.coords(2))
-        xmin, ymin = np.min(coords, axis=0)
-        xmax, ymax = np.max(coords, axis=0)
-        print(
-            self.__class__,
-            f'Count: {len(self):,}',
-            f'CRS: EPSG:{self.crs}',
-            f'dims: {self.dims}',
-            f'xmin: {xmin:.07f}',
-            f'ymin: {ymin:.07f}',
-            f'xmax: {xmax:.07f}',
-            f'ymax: {ymax:.07f}',
-            sep='\n'
-        )
-
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
         '''
@@ -990,25 +1015,6 @@ class EdgeData(ConnectionData):
             xyz = xyz[length:]
         self._df['coords'] = coords
         self._df['length'] = list(map(polyline_length, coords))
-
-    def info(self) -> None:
-        '''
-        Print dataset information.
-        '''
-        coords = np.vstack(self.coords(2))
-        xmin, ymin = np.min(coords, axis=0)
-        xmax, ymax = np.max(coords, axis=0)
-        print(
-            self.__class__,
-            f'Count: {len(self):,}',
-            f'CRS: EPSG:{self.crs}',
-            f'dims: {self.dims}',
-            f'xmin: {xmin:.07f}',
-            f'ymin: {ymin:.07f}',
-            f'xmax: {xmax:.07f}',
-            f'ymax: {ymax:.07f}',
-            sep='\n'
-        )
 
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
