@@ -378,6 +378,33 @@ class PointData(Dataset):
             Compute :math:`z`-coordinates and update data frame.
         '''
         self._df['z'] = None
+    
+    def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
+             ymax: float = None) -> np.ndarray:
+        '''
+        Return mask.
+
+        Parameters
+        ----------
+        xmin, ymin, xmax, ymax : float or None, optional
+            Minimum and maximum :math:`x`- and :math:`y`-coordinates.
+            The defaults are None.
+        
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray`
+            Masked array.
+        '''
+        mask = np.full(len(self), True)
+        if xmin:
+            mask = mask & (self._df['x'].to_numpy() > xmin)
+        if ymin:
+            mask = mask & (self._df['y'].to_numpy() > ymin)
+        if xmax:
+            mask = mask & (self._df['x'].to_numpy() < xmax)
+        if ymax:
+            mask = mask & (self._df['y'].to_numpy() < ymax)
+        return mask
 
     def transform(self, dst: int) -> None:
         '''
@@ -651,6 +678,25 @@ class ConnectionData(Dataset):
             out.append(element)
         return out[0] if len(out) == 1 else out
 
+    @abstractmethod
+    def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
+             ymax: float = None) -> np.ndarray:
+        '''
+        Return mask.
+
+        Parameters
+        ----------
+        xmin, ymin, xmax, ymax : float or None, optional
+            Minimum and maximum :math:`x`- and :math:`y`-coordinates.
+            The defaults are None.
+        
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray`
+            Masked array.
+        '''
+        pass
+
     def neighbors(self) -> Dict[int, Set[int]]:
         '''
         Return dictionary mapping point to neighboring points.
@@ -761,6 +807,35 @@ class LinkData(ConnectionData):
         self._df['coords'] = list(xyz)
         self._df['length'] = list(map(polyline_length, xyz))
 
+    def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
+             ymax: float = None) -> np.ndarray:
+        '''
+        Return mask.
+
+        Parameters
+        ----------
+        xmin, ymin, xmax, ymax : float or None, optional
+            Minimum and maximum :math:`x`- and :math:`y`-coordinates.
+            The defaults are None.
+        
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray`
+            Masked array.
+        '''
+        coords = self.coords(2).reshape(-1,2)
+        mask = np.full(2 * len(self), True)
+        if xmin:
+            mask = mask & (coords[:,0] > xmin)
+        if ymin:
+            mask = mask & (coords[:,1] > ymin)
+        if xmax:
+            mask = mask & (coords[:,0] < xmax)
+        if ymax:
+            mask = mask & (coords[:,1] < ymax)
+        mask = mask.reshape(-1,2)
+        return np.all(mask, axis=1)
+
     def transform(self, dst: int) -> None:
         '''
         Transform link coordinates to another CRS.
@@ -848,6 +923,38 @@ class EdgeData(ConnectionData):
             xyz = xyz[length:]
         self._df['coords'] = coords
         self._df['length'] = list(map(polyline_length, coords))
+
+    def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
+             ymax: float = None) -> np.ndarray:
+        '''
+        Return mask.
+
+        Parameters
+        ----------
+        xmin, ymin, xmax, ymax : float or None, optional
+            Minimum and maximum :math:`x`- and :math:`y`-coordinates.
+            The defaults are None.
+        
+        Returns
+        -------
+        mask : :class:`~numpy.ndarray`
+            Masked array.
+        '''
+        coords = np.vstack(self.coords(2))
+        bools = np.full(len(coords), True)
+        if xmin:
+            bools = bools & (coords[:,0] > xmin)
+        if ymin:
+            bools = bools & (coords[:,1] > ymin)
+        if xmax:
+            bools = bools & (coords[:,0] < xmax)
+        if ymax:
+            bools = bools & (coords[:,1] < ymax)
+        mask = []
+        for length in map(len, self._df['coords']):
+            mask.append(np.all(bools[:length]))
+            bools = bools[length:]
+        return np.array(mask)
 
     def transform(self, dst: int) -> None:
         '''
