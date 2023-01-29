@@ -290,6 +290,8 @@ class Model:
     def from_pickle(cls, path_to_pickle: str) -> 'Model':
         '''
         Read model from pickled representation.
+
+        .. versionadded:: 0.0.6
         
         Parameters
         ----------
@@ -353,6 +355,8 @@ class Model:
     def info(self) -> None:
         '''
         Print model information.
+
+        .. versionadded:: 0.0.6
         '''
         print(self.__class__, '', 'Attributes:', sep='\n |  ')
         for k, v in self.__dict__.items():
@@ -363,6 +367,8 @@ class Model:
     def to_pickle(self, path_to_pickle: str) -> None:
         '''
         Write model to disk in pickled representation.
+
+        .. versionadded:: 0.0.6
 
         Parameters
         ----------
@@ -513,6 +519,8 @@ def simplify(model: Model, *, xmin: float = None, ymin: float = None,
              xmax: float = None, ymax: float = None) -> Model:
     '''
     Return simplified model.
+
+    .. versionadded:: 0.0.5
 
     Parameters
     ----------
