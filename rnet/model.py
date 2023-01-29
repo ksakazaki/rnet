@@ -11,7 +11,7 @@ from rnet.dataset import VertexData, LinkData, NodeData, EdgeData, PointData, Co
 from rnet.geometry import polyline_length
 
 
-__all__ = ['Model', 'model', 'read_osm', 'read_osms']
+__all__ = ['Model', 'model', 'read_osm', 'read_osms', 'simplify']
 
 
 _OSM_HIERARCHY = {
@@ -455,9 +455,8 @@ def _ccl(neighbors: Dict[int, Set[int]]) -> List[Set[int]]:
     return clusters
 
 
-def simplify(model: Model, *, clusters: int = 1, xmin: float = None,
-             xmax: float = None, ymin: float = None, ymax: float = None
-             ) -> Model:
+def simplify(model: Model, *, xmin: float = None, ymin: float = None,
+             xmax: float = None, ymax: float = None) -> Model:
     '''
     Return simplified model.
 
@@ -465,9 +464,7 @@ def simplify(model: Model, *, clusters: int = 1, xmin: float = None,
     ----------
     model : :class:`Model`
         Original model.
-    clusters : int, optional
-        Number of clusters to keep.
-    xmin, xmax, ymin, ymax : float or None, optional
+    xmin, ymin, xmax, ymax : float or None, optional
         Bounds within which features are kept.
     
     Returns
@@ -475,4 +472,28 @@ def simplify(model: Model, *, clusters: int = 1, xmin: float = None,
     :class:`Model`
         Simplified model.
     '''
-    raise NotImplementedError
+    nodes = NodeData(
+        model.nodes._df.iloc[model.nodes.mask(xmin, ymin, xmax, ymax)],
+        model.nodes._crs
+        )
+    edges = EdgeData(
+        model.edges._df.iloc[model.edges.mask(xmin, ymin, xmax, ymax)],
+        model.edges._crs,
+        directed=model.edges._directed
+        )
+    if model.vertices is not None:
+        vertices = VertexData(
+            model.vertices._df.iloc[model.vertices.mask(xmin, ymin, xmax, ymax)],
+            model.vertices._crs
+        )
+    else:
+        vertices = None
+    if model.links is not None:
+        links = LinkData(
+            model.links._df.iloc[model.links.mask(xmin, ymin, xmax, ymax)],
+            model.links._crs,
+            directed=model.links._directed
+        )
+    else:
+        links = None
+    return Model(nodes, edges, vertices, links)
