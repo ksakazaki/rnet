@@ -261,10 +261,13 @@ def active_columns(df: pd.DataFrame, fields: List[Field]) -> List[str]:
     for field in fields:
         if field.required:
             cols.append(field.name)
-        elif np.all(df[field.name].to_numpy() == field.default):
-            continue
-        else:
-            cols.append(field.name)
+        elif field.default is None:
+            if (('int' in field.type) or ('float' in field.type)) \
+                    and np.all(np.isnan(df[field.name])):
+                continue
+            elif np.all(df[field.name] == field.default):
+                continue
+        cols.append(field.name)
     return cols
 
 
