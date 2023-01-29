@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from osgeo import ogr
-from rnet.dataset import VertexData, LinkData, NodeData, EdgeData
+from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData
 from rnet.geometry import polyline_length
 
 
@@ -349,6 +349,16 @@ class Model:
         '''
         self.nodes.elevate(*paths, r=r, p=p)
         self.edges.elevate(*paths, r=r, p=p)
+
+    def info(self) -> None:
+        '''
+        Print model information.
+        '''
+        print(self.__class__, '', 'Attributes:', sep='\n |  ')
+        for k, v in self.__dict__.items():
+            if isinstance(v, Dataset):
+                print(f' |\n |  {k!r}', end='\n |  ')
+                print(v.info(sep='\n |  ', ret=True))
 
     def to_pickle(self, path_to_pickle: str) -> None:
         '''
