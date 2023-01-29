@@ -178,6 +178,8 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
         links._df['length'] = list(map(polyline_length, coords))
         links._crs = crs
         out.append(links)
+    for dataset in out:
+        dataset.reset_dtypes()
     return tuple(out)
 
 

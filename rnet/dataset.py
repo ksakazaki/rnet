@@ -4,7 +4,7 @@ import dataclasses
 from dataclasses import dataclass
 from functools import partial
 import sys
-from typing import Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 from rnet.coordinates import transform_coords, idw_query, densify
@@ -12,6 +12,13 @@ from rnet.geometry import polyline_length
 
 
 Action = Tuple[int, int]  # (connection_id, destination_id)
+
+
+class Field(NamedTuple):
+    name: str
+    type: str
+    required: bool
+    default: Any = None
 
 
 class Error(Exception):
@@ -58,7 +65,7 @@ class Dataset(ABC):
     '''
 
     def __init__(self, df: pd.DataFrame, crs: int = None) -> None:
-        self._df = validate(df, self._BASE_ELEMENT)
+        self._df = validate(df, self.FIELDS)
         self._crs = crs
 
     def __contains__(self, id_: int) -> bool:
@@ -93,7 +100,13 @@ class Dataset(ABC):
         -------
         :class:`~pandas.DataFrame`
         '''
-        return self._df[active_columns(self._df, self._BASE_ELEMENT)]
+        return self._df[active_columns(self._df, self.FIELDS)]
+
+    def reset_dtypes(self) -> None:
+        '''
+        Apply prescribed data types.
+        '''
+        self._df = self._df.astype({f.name: f.type for f in self.FIELDS})
 
     def to_csv(self, path_to_csv: str, *, columns: List[str] = 'active'
                ) -> None:
@@ -194,22 +207,16 @@ def dataset(base: dataclass, layer_name: str = None):
     return decorate
 
 
-def validate(df: pd.DataFrame, base: dataclass) -> pd.DataFrame:
+def validate(df: pd.DataFrame, fields: List[Field]) -> pd.DataFrame:
     '''
-    Ensure that a data frame has all required columns.
-
-    Required columns are the fields in `base` that do not have a default
-    value. If a required column is missing, then an error is raised.
-
-    Optional columns are the fields in `base` that have a default value.
-    If an optional column is missing, then it is added to `df`.
+    Ensure that a data frame has all required fields.
 
     Parameters
     ----------
     df : :class:`~pandas.DataFrame`
         Data frame to be validated.
-    base : :class:`~dataclasses.dataclass`
-        Base dataclass.
+    fields : List[Field]
+        List of fields.
 
     Returns
     -------
@@ -221,17 +228,17 @@ def validate(df: pd.DataFrame, base: dataclass) -> pd.DataFrame:
         If a required column is missing.
     '''
     # TODO: raise error if crs is not given for coordinates
-    for field in dataclasses.fields(base):
+    for field in fields:
         if field.name in df.columns:
             continue
-        elif isinstance(field.default, dataclasses._MISSING_TYPE):
+        elif field.required:
             raise MissingColumnError(field.name)
         else:
             df[field.name] = field.default
     return df
 
 
-def active_columns(df: pd.DataFrame, base: dataclasses.dataclass) -> List[str]:
+def active_columns(df: pd.DataFrame, fields: List[Field]) -> List[str]:
     '''
     Return names of active columns in a data frame.
 
@@ -242,16 +249,17 @@ def active_columns(df: pd.DataFrame, base: dataclasses.dataclass) -> List[str]:
     ----------
     df : :class:`pandas.DataFrame`
         Data frame.
-    base : :class:`dataclasses.dataclass`
-        Base data class.
+    fields : List[Field]
+        List of fields.
 
     Returns
     -------
-    List[str]
+    cols : List[str]
+        List containing names of active columns.
     '''
     cols = []
-    for field in dataclasses.fields(base):
-        if isinstance(field.default, dataclasses._MISSING_TYPE):
+    for field in fields:
+        if field.required:
             cols.append(field.name)
         elif np.all(df[field.name].to_numpy() == field.default):
             continue
@@ -297,6 +305,12 @@ class PointData(Dataset):
         Class representing node data.
     '''
 
+    FIELDS = (
+        Field('x', 'float64', True),
+        Field('y', 'float64', True),
+        Field('z', 'float64', False)
+    )
+
     def coords(self, dims: int = None) -> np.ndarray:
         '''
         Return array of point coordinates.
@@ -339,7 +353,7 @@ class PointData(Dataset):
         dims : int
             Number of dimensions.
         '''
-        if 'z' in active_columns(self._df, self._BASE_ELEMENT):
+        if 'z' in active_columns(self._df, self.FIELDS):
             return 3
         else:
             return 2
@@ -515,6 +529,14 @@ class ConnectionData(Dataset):
     directed : bool
         Whether connections are directed.
     '''
+    
+    FIELDS = (
+        Field('i', 'uint32', True),
+        Field('j', 'uint32', True),
+        Field('tag', 'category', True),
+        Field('length', 'float64', False),
+        Field('coords', 'object', False)
+    )
 
     def __init__(self, df: pd.DataFrame, crs: int = None, *, directed: bool
                  ) -> None:
@@ -587,7 +609,7 @@ class ConnectionData(Dataset):
         -------
         int or None
         '''
-        if 'coords' in active_columns(self._df, self._BASE_ELEMENT):
+        if 'coords' in active_columns(self._df, self.FIELDS):
             return self._df['coords'].iloc[0].shape[1]
         else:
             return
