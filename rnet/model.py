@@ -1,13 +1,11 @@
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from itertools import chain
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set
 import os
 import numpy as np
 import pandas as pd
 from osgeo import ogr
-from rnet.coordinates import idw_query
-from rnet.dataset import VertexData, LinkData, NodeData, EdgeData, PointData, ConnectionData
+from rnet.dataset import VertexData, LinkData, NodeData, EdgeData
 from rnet.geometry import polyline_length
 
 
