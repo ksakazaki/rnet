@@ -6,4 +6,5 @@ Reference
 
    creation/index
    model/index
+   manipulation/index
    utils/index

@@ -464,11 +464,16 @@ def simplify(model: Model, *, xmin: float = None, ymin: float = None,
         Original model.
     xmin, ymin, xmax, ymax : float or None, optional
         Bounds within which features are kept.
-    
+
     Returns
     -------
     :class:`Model`
         Simplified model.
+
+    Examples
+    --------
+    >>> m = rn.model("shinjuku.osm")
+    >>> n = rn.simplify(m, xmin=139.7)
     '''
     nodes = NodeData(
         model.nodes._df.iloc[model.nodes.mask(xmin, ymin, xmax, ymax)],
