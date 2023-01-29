@@ -33,6 +33,7 @@
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Utilities" href="../utils/index.html" />
@@ -191,6 +192,11 @@
     </a>
    </li>
    <li class="toctree-l2">
+    <a class="reference internal" href="../model/rnet.Model.info.html">
+     rnet.Model.info
+    </a>
+   </li>
+   <li class="toctree-l2">
     <a class="reference internal" href="../model/rnet.Model.to_pickle.html">
      rnet.Model.to_pickle
     </a>
@@ -307,8 +313,60 @@
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">rn</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="s2">&quot;shinjuku.osm&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">n</span> <span class="o">=</span> <span class="n">rn</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="mf">139.7</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">rn</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="s2">&quot;./resources/shinjuku.osm&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+<span class="go">&lt;class &#39;rnet.model.Model&#39;&gt;</span>
+<span class="go"> |</span>
+<span class="go"> |  Attributes:</span>
+<span class="go"> |</span>
+<span class="go"> |  &#39;nodes&#39;</span>
+<span class="go"> |  &lt;class &#39;rnet.dataset.NodeData&#39;&gt;</span>
+<span class="go"> |  Count: 944</span>
+<span class="go"> |  CRS: EPSG:4326</span>
+<span class="go"> |  dims: 3</span>
+<span class="go"> |  xmin: 139.6867708</span>
+<span class="go"> |  ymin: 35.6782595</span>
+<span class="go"> |  xmax: 139.7213249</span>
+<span class="go"> |  ymax: 35.7018425</span>
+<span class="go"> |</span>
+<span class="go"> |  &#39;edges&#39;</span>
+<span class="go"> |  &lt;class &#39;rnet.dataset.EdgeData&#39;&gt;</span>
+<span class="go"> |  Count: 2,816</span>
+<span class="go"> |  CRS: EPSG:4326</span>
+<span class="go"> |  dims: 2</span>
+<span class="go"> |  xmin: 139.6867708</span>
+<span class="go"> |  ymin: 35.6782595</span>
+<span class="go"> |  xmax: 139.7213249</span>
+<span class="go"> |  ymax: 35.7018425</span>
+</pre></div>
+</div>
+<p>Construct a simplified model by applying a lower bound on the
+<span class="math notranslate nohighlight">\(x\)</span>-coordinates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">n</span> <span class="o">=</span> <span class="n">rn</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="mf">139.7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+<span class="go">&lt;class &#39;rnet.model.Model&#39;&gt;</span>
+<span class="go"> |</span>
+<span class="go"> |  Attributes:</span>
+<span class="go"> |</span>
+<span class="go"> |  &#39;nodes&#39;</span>
+<span class="go"> |  &lt;class &#39;rnet.dataset.NodeData&#39;&gt;</span>
+<span class="go"> |  Count: 475</span>
+<span class="go"> |  CRS: EPSG:4326</span>
+<span class="go"> |  dims: 3</span>
+<span class="go"> |  xmin: 139.7000571</span>
+<span class="go"> |  ymin: 35.6782595</span>
+<span class="go"> |  xmax: 139.7213249</span>
+<span class="go"> |  ymax: 35.6982890</span>
+<span class="go"> |</span>
+<span class="go"> |  &#39;edges&#39;</span>
+<span class="go"> |  &lt;class &#39;rnet.dataset.EdgeData&#39;&gt;</span>
+<span class="go"> |  Count: 1,418</span>
+<span class="go"> |  CRS: EPSG:4326</span>
+<span class="go"> |  dims: 2</span>
+<span class="go"> |  xmin: 139.7000571</span>
+<span class="go"> |  ymin: 35.6782595</span>
+<span class="go"> |  xmax: 139.7213249</span>
+<span class="go"> |  ymax: 35.6982890</span>
 </pre></div>
 </div>
 </dd></dl>
