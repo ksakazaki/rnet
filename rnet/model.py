@@ -266,11 +266,14 @@ class Model:
         Return simplified model.
     '''
 
-    def __init__(self, nodes, edges, vertices=None, links=None):
+    def __init__(self, nodes: NodeData, edges: EdgeData,
+                 vertices: VertexData = None, links: LinkData = None):
         self.nodes = nodes
         self.edges = edges
-        self.vertices = vertices
-        self.links = links
+        if isinstance(vertices, VertexData):
+            self.vertices = vertices
+        if isinstance(links, LinkData):
+            self.links = links
 
     @property
     def crs(self) -> int:
@@ -316,7 +319,7 @@ class Model:
             Interval between densified points.
         '''
         self.edges.densify(interval)
-        if self.links is not None:
+        if hasattr(self, 'links'):
             self.links.densify(interval)
 
     @property
@@ -375,9 +378,9 @@ class Model:
         '''
         self.nodes.transform(dst)
         self.edges.transform(dst)
-        if self.vertices is not None:
+        if hasattr(self, 'vertices'):
             self.vertices.transform(dst)
-        if self.links is not None:
+        if hasattr(self, 'links'):
             self.links.transform(dst)
 
 
@@ -527,14 +530,14 @@ def simplify(model: Model, *, xmin: float = None, ymin: float = None,
         model.edges._crs,
         directed=model.edges._directed
         )
-    if model.vertices is not None:
+    if hasattr(model, 'vertices'):
         vertices = VertexData(
             model.vertices._df.iloc[model.vertices.mask(xmin, ymin, xmax, ymax)],
             model.vertices._crs
         )
     else:
         vertices = None
-    if model.links is not None:
+    if hasattr(model, 'links'):
         links = LinkData(
             model.links._df.iloc[model.links.mask(xmin, ymin, xmax, ymax)],
             model.links._crs,
