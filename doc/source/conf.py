@@ -22,7 +22,7 @@ copyright = '2022, Kota Sakazaki'
 author = 'Kota Sakazaki'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.5'
+release = '0.0.6'
 
 
 # -- General configuration ---------------------------------------------------
@@ -47,7 +47,7 @@ numpydoc_attributes_as_param_list = False
 intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    'qgis': ('https://qgis.org/pyqgis/master/', None)
+    # 'qgis': ('https://qgis.org/pyqgis/master/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
