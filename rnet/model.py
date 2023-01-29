@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from itertools import chain
+import pickle
 from typing import Dict, List, Set
 import os
 import numpy as np
@@ -282,6 +283,29 @@ class Model:
         '''
         raise NotImplementedError
 
+    @classmethod
+    def from_pickle(cls, path_to_pickle: str) -> 'Model':
+        '''
+        Read model from pickled representation.
+        
+        Parameters
+        ----------
+        path_to_pickle : str
+            File path.
+        
+        Return
+        ------
+        :class:`Model`
+
+        See also
+        --------
+        :meth:`to_pickle`
+            Write model to disk in pickled representation.
+        '''
+        with open(path_to_pickle, "rb") as f:
+            model = pickle.load(f)
+        return model
+
     def densify(self, interval: float):
         '''
         Densify connections.
@@ -322,6 +346,23 @@ class Model:
         '''
         self.nodes.elevate(*paths, r=r, p=p)
         self.edges.elevate(*paths, r=r, p=p)
+
+    def to_pickle(self, path_to_pickle: str) -> None:
+        '''
+        Write model to disk in pickled representation.
+
+        Parameters
+        ----------
+        path_to_pickle : str
+            File path.
+
+        See also
+        --------
+        :meth:`from_pickle`
+            Read model from pickled representation.
+        '''
+        with open(path_to_pickle, "wb") as f:
+            pickle.dump(self, f)
 
     def transform(self, dst: int) -> None:
         '''
