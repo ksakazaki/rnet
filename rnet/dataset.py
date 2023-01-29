@@ -392,7 +392,26 @@ class PointData(Dataset):
             Compute :math:`z`-coordinates and update data frame.
         '''
         self._df['z'] = None
-    
+
+    def info(self) -> None:
+        '''
+        Print dataset information.
+        '''
+        coords = self.coords(2)
+        xmin, ymin = np.min(coords, axis=0)
+        xmax, ymax = np.max(coords, axis=0)
+        print(
+            self.__class__,
+            f'Count: {len(self):,}',
+            f'CRS: EPSG:{self.crs}',
+            f'dims: {self.dims}',
+            f'xmin: {xmin:.07f}',
+            f'ymin: {ymin:.07f}',
+            f'xmax: {xmax:.07f}',
+            f'ymax: {ymax:.07f}',
+            sep='\n'
+        )
+
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
         '''
@@ -701,6 +720,13 @@ class ConnectionData(Dataset):
         return out[0] if len(out) == 1 else out
 
     @abstractmethod
+    def info(self) -> None:
+        '''
+        Print dataset information.
+        '''
+        pass
+
+    @abstractmethod
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
         '''
@@ -829,6 +855,25 @@ class LinkData(ConnectionData):
         self._df['coords'] = list(xyz)
         self._df['length'] = list(map(polyline_length, xyz))
 
+    def info(self) -> None:
+        '''
+        Print dataset information.
+        '''
+        coords = np.vstack(self.coords(2))
+        xmin, ymin = np.min(coords, axis=0)
+        xmax, ymax = np.max(coords, axis=0)
+        print(
+            self.__class__,
+            f'Count: {len(self):,}',
+            f'CRS: EPSG:{self.crs}',
+            f'dims: {self.dims}',
+            f'xmin: {xmin:.07f}',
+            f'ymin: {ymin:.07f}',
+            f'xmax: {xmax:.07f}',
+            f'ymax: {ymax:.07f}',
+            sep='\n'
+        )
+
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
         '''
@@ -945,6 +990,25 @@ class EdgeData(ConnectionData):
             xyz = xyz[length:]
         self._df['coords'] = coords
         self._df['length'] = list(map(polyline_length, coords))
+
+    def info(self) -> None:
+        '''
+        Print dataset information.
+        '''
+        coords = np.vstack(self.coords(2))
+        xmin, ymin = np.min(coords, axis=0)
+        xmax, ymax = np.max(coords, axis=0)
+        print(
+            self.__class__,
+            f'Count: {len(self):,}',
+            f'CRS: EPSG:{self.crs}',
+            f'dims: {self.dims}',
+            f'xmin: {xmin:.07f}',
+            f'ymin: {ymin:.07f}',
+            f'xmax: {xmax:.07f}',
+            f'ymax: {ymax:.07f}',
+            sep='\n'
+        )
 
     def mask(self, xmin: float = None, ymin: float = None, xmax: float = None,
              ymax: float = None) -> np.ndarray:
