@@ -1,0 +1,668 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rnet.model &#8212; rnet 0.0.4 documentation</title>
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
+
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
+  <link rel="stylesheet"
+    href="../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="None">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
+
+    
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
+
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">rnet 0.0.4 documentation</p>
+  
+</a>
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="fas fa-bars"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../reference/index.html">
+  Reference
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/ksakazaki/rnet" rel="noopener" target="_blank" title="GitHub"><span><i class="fab fa-github-square"></i></span>
+            <label class="sr-only">GitHub</label></a>
+        </li>
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
+          
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    
+  </div>
+</nav>
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
+
+          
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+</div>
+
+
+          
+          
+          <div class="bd-content col-12 col-md-9 col-xl-7">
+              
+              <article class="bd-article" role="main">
+                
+  <h1>Source code for rnet.model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">ogr</span>
+<span class="kn">from</span> <span class="nn">rnet.coordinates</span> <span class="kn">import</span> <span class="n">idw_query</span>
+<span class="kn">from</span> <span class="nn">rnet.dataset</span> <span class="kn">import</span> <span class="n">VertexData</span><span class="p">,</span> <span class="n">LinkData</span><span class="p">,</span> <span class="n">NodeData</span><span class="p">,</span> <span class="n">EdgeData</span><span class="p">,</span> <span class="n">PointData</span><span class="p">,</span> <span class="n">ConnectionData</span>
+<span class="kn">from</span> <span class="nn">rnet.geometry</span> <span class="kn">import</span> <span class="n">polyline_length</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;read_osm&#39;</span><span class="p">,</span> <span class="s1">&#39;read_osms&#39;</span><span class="p">]</span>
+
+
+<span class="n">_OSM_HIERARCHY</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;living_street&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;residential&#39;</span>   <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;unclassified&#39;</span>  <span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s1">&#39;tertiary_link&#39;</span> <span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s1">&#39;tertiary&#39;</span>      <span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s1">&#39;secondary_link&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="s1">&#39;secondary&#39;</span>     <span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s1">&#39;primary_link&#39;</span>  <span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s1">&#39;primary&#39;</span>       <span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s1">&#39;trunk_link&#39;</span>    <span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+    <span class="s1">&#39;trunk&#39;</span>         <span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s1">&#39;motorway_link&#39;</span> <span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+    <span class="s1">&#39;motorway&#39;</span>      <span class="p">:</span> <span class="mi">12</span>
+    <span class="p">}</span>
+
+
+<span class="n">_OSM_TAGS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_OSM_HIERARCHY</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_osms"><a class="viewcode-back" href="../../reference/creation/rnet.read_osms.html#rnet.read_osms">[docs]</a><span class="k">def</span> <span class="nf">read_osms</span><span class="p">(</span><span class="o">*</span><span class="n">paths</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">crs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4326</span><span class="p">,</span> <span class="n">return_vertices</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="n">return_links</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lines&#39;</span><span class="p">,</span>
+              <span class="n">exclude</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Read multiple OSM files.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *paths : str</span>
+<span class="sd">        OSM file paths.</span>
+<span class="sd">    crs : int, optional</span>
+<span class="sd">        EPSG code of desired CRS for point coordinates. OSM features are</span>
+<span class="sd">        represented in EPSG:4326. The default is 4326. If another EPSG code is</span>
+<span class="sd">        given, then point coordinates are transformed.</span>
+<span class="sd">    return_vertices : bool, optional</span>
+<span class="sd">        If True, also return vertex data. Vertices are two-dimensional points</span>
+<span class="sd">        used to define the geometry of each road. The default is False.</span>
+<span class="sd">    return_links : bool, optional</span>
+<span class="sd">        If True, also return link data. Links are line segments defined by</span>
+<span class="sd">        unordered pairs of vertices. The default is False.</span>
+<span class="sd">    </span>
+<span class="sd">    Other parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    layer_name : str, optional</span>
+<span class="sd">        Name of the layer from which OSM features are read. The default is</span>
+<span class="sd">        &#39;lines&#39;.</span>
+<span class="sd">    exclude : List[str], optional</span>
+<span class="sd">        Tags to exclude. By default, the following tags are included:</span>
+<span class="sd">        &#39;living_street&#39;, &#39;residential&#39;, &#39;unclassified&#39;,  &#39;tertiary_link&#39;,</span>
+<span class="sd">        &#39;tertiary&#39;, &#39;secondary_link&#39;, &#39;secondary&#39;, &#39;primary_link&#39;, &#39;primary&#39;,</span>
+<span class="sd">        &#39;trunk_link&#39;, &#39;trunk&#39;, &#39;motorway_link&#39;, &#39;motorway&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    nodes : :class:`NodeData`</span>
+<span class="sd">        Nodes extracted from the OSM files.</span>
+<span class="sd">    edges : :class:`EdgeData`</span>
+<span class="sd">        Directed edges extracted from the OSM files.</span>
+<span class="sd">    vertices : :class:`VertexData`, optional</span>
+<span class="sd">        Vertices extracted from the OSM files. Only provided if</span>
+<span class="sd">        `return_vertices` is True.</span>
+<span class="sd">    links : :class:`LinkData`, optional</span>
+<span class="sd">        Undirected links extracted from the OSM files. Only provided if</span>
+<span class="sd">        `return_links` is True.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`read_osm`</span>
+<span class="sd">        Read a single OSM file.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://wiki.openstreetmap.org/wiki/Key:highway</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s1">&#39;OSM&#39;</span><span class="p">)</span>
+    <span class="n">keep_tags</span> <span class="o">=</span> <span class="n">_OSM_TAGS</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">exclude</span><span class="p">)</span>
+
+    <span class="c1"># Read files</span>
+    <span class="n">all_points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_tags</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="n">layer_name</span><span class="p">):</span>
+            <span class="n">fid</span> <span class="o">=</span> <span class="n">feat</span><span class="o">.</span><span class="n">GetFID</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">fid</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">feat</span><span class="o">.</span><span class="n">GetField</span><span class="p">(</span><span class="s1">&#39;highway&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">keep_tags</span><span class="p">:</span>
+                <span class="n">all_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feat</span><span class="o">.</span><span class="n">GetGeometryRef</span><span class="p">()</span><span class="o">.</span><span class="n">GetPoints</span><span class="p">())</span>
+                <span class="n">all_tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+
+    <span class="c1"># Extract vertices</span>
+    <span class="n">vertices</span><span class="p">,</span> <span class="n">inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">all_points</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">vertices</span> <span class="o">=</span> <span class="n">VertexData</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">]),</span> <span class="mi">4326</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">crs</span> <span class="o">!=</span> <span class="mi">4326</span><span class="p">:</span>
+        <span class="n">vertices</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">crs</span><span class="p">)</span>
+
+    <span class="c1"># Extract links</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">length</span><span class="p">,</span> <span class="n">tag</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">all_points</span><span class="p">),</span> <span class="n">all_tags</span><span class="p">):</span>
+        <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">inv</span><span class="p">[:</span><span class="n">length</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">inv</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">length</span><span class="p">],</span> <span class="p">[</span><span class="n">tag</span><span class="p">]</span><span class="o">*</span><span class="n">length</span><span class="p">))</span>
+        <span class="n">inv</span> <span class="o">=</span> <span class="n">inv</span><span class="p">[</span><span class="n">length</span><span class="p">:]</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">LinkData</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">links</span><span class="p">),</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;tag&#39;</span><span class="p">]),</span>
+        <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Extract nodes</span>
+    <span class="n">nodes_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">Counter</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">links</span><span class="o">.</span><span class="n">pairs</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()))</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">NodeData</span><span class="p">(</span><span class="n">vertices</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">nodes_</span><span class="p">],</span> <span class="n">crs</span><span class="p">)</span>
+
+    <span class="c1"># Extract edges</span>
+    <span class="n">nodes_</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">nodes_</span><span class="p">)</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="n">links</span><span class="o">.</span><span class="n">actions</span><span class="p">()</span>
+    <span class="n">vseqs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># vertex sequences</span>
+    <span class="n">lseqs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># link sequences</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nodes_</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">action</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">vseqs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+            <span class="n">lseqs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">action</span><span class="p">])</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">actions_</span> <span class="o">=</span> <span class="n">actions</span><span class="p">[</span><span class="n">vseqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">actions_</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">action_</span> <span class="o">=</span> <span class="n">actions_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">assert</span> <span class="n">action_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lseqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                        <span class="n">action_</span> <span class="o">=</span> <span class="n">actions_</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">finally</span><span class="p">:</span>
+                        <span class="n">vseqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">action_</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">lseqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">action_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="p">[</span><span class="n">vseq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">vseq</span> <span class="ow">in</span> <span class="n">vseqs</span><span class="p">]</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="p">[</span><span class="n">vseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">vseq</span> <span class="ow">in</span> <span class="n">vseqs</span><span class="p">]</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">links</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="n">lseq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">lseq</span> <span class="ow">in</span> <span class="n">lseqs</span><span class="p">]]</span>
+    <span class="n">vcoords</span> <span class="o">=</span> <span class="n">vertices</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="mi">2</span><span class="p">)[</span><span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">vseqs</span><span class="p">))]</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">vseqs</span><span class="p">):</span>
+        <span class="n">coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vcoords</span><span class="p">[:</span><span class="n">length</span><span class="p">])</span>
+        <span class="n">vcoords</span> <span class="o">=</span> <span class="n">vcoords</span><span class="p">[</span><span class="n">length</span><span class="p">:]</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">polyline_length</span><span class="p">,</span> <span class="n">coords</span><span class="p">))</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">EdgeData</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">tags</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">coords</span><span class="p">),</span>
+                     <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;tag&#39;</span><span class="p">,</span> <span class="s1">&#39;length&#39;</span><span class="p">,</span> <span class="s1">&#39;coords&#39;</span><span class="p">]),</span>
+        <span class="n">crs</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Re-index nodes</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="n">_df</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">edges</span><span class="o">.</span><span class="n">pairs</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">edges</span><span class="o">.</span><span class="n">_df</span><span class="p">[[</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">inverse</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Return</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">return_vertices</span><span class="p">:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_links</span><span class="p">:</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">vertices</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="mi">2</span><span class="p">)[</span><span class="n">links</span><span class="o">.</span><span class="n">pairs</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">links</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">links</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">polyline_length</span><span class="p">,</span> <span class="n">coords</span><span class="p">))</span>
+        <span class="n">links</span><span class="o">.</span><span class="n">_crs</span> <span class="o">=</span> <span class="n">crs</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">links</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_osm"><a class="viewcode-back" href="../../reference/creation/rnet.read_osm.html#rnet.read_osm">[docs]</a><span class="k">def</span> <span class="nf">read_osm</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">crs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4326</span><span class="p">,</span> <span class="n">return_vertices</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="n">return_links</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lines&#39;</span><span class="p">,</span>
+             <span class="n">exclude</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Read a single OSM file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        OSM file path.</span>
+<span class="sd">    crs : int, optional</span>
+<span class="sd">        EPSG code of desired CRS for point coordinates. OSM features are</span>
+<span class="sd">        represented in EPSG:4326. The default is 4326. If another EPSG code is</span>
+<span class="sd">        given, then point coordinates are transformed.</span>
+<span class="sd">    return_vertices : bool, optional</span>
+<span class="sd">        If True, also return vertex data. Vertices are two-dimensional points</span>
+<span class="sd">        used to define the geometry of each road. The default is False.</span>
+<span class="sd">    return_links : bool, optional</span>
+<span class="sd">        If True, also return link data. Links are line segments defined by</span>
+<span class="sd">        unordered pairs of vertices. The default is False.</span>
+<span class="sd">    </span>
+<span class="sd">    Other parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    layer_name : str, optional</span>
+<span class="sd">        Name of the layer from which OSM features are read. The default is</span>
+<span class="sd">        &#39;lines&#39;.</span>
+<span class="sd">    exclude : List[str], optional</span>
+<span class="sd">        Tags to exclude. By default, the following tags are included:</span>
+<span class="sd">        &#39;living_street&#39;, &#39;residential&#39;, &#39;unclassified&#39;,  &#39;tertiary_link&#39;,</span>
+<span class="sd">        &#39;tertiary&#39;, &#39;secondary_link&#39;, &#39;secondary&#39;, &#39;primary_link&#39;, &#39;primary&#39;,</span>
+<span class="sd">        &#39;trunk_link&#39;, &#39;trunk&#39;, &#39;motorway_link&#39;, &#39;motorway&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    nodes : :class:`NodeData`</span>
+<span class="sd">        Nodes extracted from the OSM files.</span>
+<span class="sd">    edges : :class:`EdgeData`</span>
+<span class="sd">        Directed edges extracted from the OSM files.</span>
+<span class="sd">    vertices : :class:`VertexData`, optional</span>
+<span class="sd">        Vertices extracted from the OSM files. Only provided if</span>
+<span class="sd">        `return_vertices` is True.</span>
+<span class="sd">    links : :class:`LinkData`, optional</span>
+<span class="sd">        Undirected links extracted from the OSM files. Only provided if</span>
+<span class="sd">        `return_links` is True.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`read_osms`</span>
+<span class="sd">        Read multiple OSM files.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://wiki.openstreetmap.org/wiki/Key:highway</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">read_osms</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">return_vertices</span><span class="o">=</span><span class="n">return_vertices</span><span class="p">,</span>
+                     <span class="n">return_links</span><span class="o">=</span><span class="n">return_links</span><span class="p">,</span> <span class="n">layer_name</span><span class="o">=</span><span class="n">layer_name</span><span class="p">,</span>
+                     <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../reference/model/index.html#rnet.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class representing an RNet model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nodes : :class:`NodeData`</span>
+<span class="sd">        Node data.</span>
+<span class="sd">    edges : :class:`EdgeData`</span>
+<span class="sd">        Edge data.</span>
+<span class="sd">    vertices : :class:`VertexData` or None, optional</span>
+<span class="sd">        Vertex data.</span>
+<span class="sd">    links : :class:`LinkData` or None, optional</span>
+<span class="sd">        Link data.</span>
+<span class="sd">    </span>
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`model`</span>
+<span class="sd">        Construct a model from multiple data sources.</span>
+<span class="sd">    :func:`simplify`</span>
+<span class="sd">        Return simplified model.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">vertices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">links</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span> <span class="o">=</span> <span class="n">vertices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">links</span> <span class="o">=</span> <span class="n">links</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">crs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        EPSG code of model CRS.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="Model.densify"><a class="viewcode-back" href="../../reference/model/rnet.Model.densify.html#rnet.Model.densify">[docs]</a>    <span class="k">def</span> <span class="nf">densify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Densify connections.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        interval : float</span>
+<span class="sd">            Interval between densified points.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">densify</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">densify</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dims</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Number of coordinate dimensions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="Model.elevate"><a class="viewcode-back" href="../../reference/model/rnet.Model.elevate.html#rnet.Model.elevate">[docs]</a>    <span class="k">def</span> <span class="nf">elevate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">paths</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Compute elevations and update :math:`z`-coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *paths : str</span>
+<span class="sd">            Path(s) to TIF file(s) storing elevation data.</span>
+<span class="sd">        r : float, optional</span>
+<span class="sd">            Search radius for nearby points in degrees. The default is</span>
+<span class="sd">            0.001.</span>
+<span class="sd">        p : int, optional</span>
+<span class="sd">            Power setting for IDW interpolation. The default is 2.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="n">paths</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="n">paths</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.transform"><a class="viewcode-back" href="../../reference/model/rnet.Model.transform.html#rnet.Model.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dst</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Transform coordinates to another CRS.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dst : int</span>
+<span class="sd">            EPSG code of destination CRS.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">links</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="model"><a class="viewcode-back" href="../../reference/creation/rnet.model.html#rnet.model">[docs]</a><span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="o">*</span><span class="n">paths</span><span class="p">,</span> <span class="n">crs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4326</span><span class="p">,</span> <span class="n">keep_vertices</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+          <span class="n">keep_links</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lines&#39;</span><span class="p">,</span>
+          <span class="n">exclude</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Construct a model from multiple data sources.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *paths : str</span>
+<span class="sd">        A single directory path or multiple file paths. The following</span>
+<span class="sd">        file types are supported:</span>
+
+<span class="sd">            * OSM files containing street map data</span>
+<span class="sd">            * TIF files containing elevation data</span>
+
+<span class="sd">    crs : int, optional</span>
+<span class="sd">        EPSG code of model CRS. The default is 4326.</span>
+
+<span class="sd">    Other parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    keep_vertices, keep_links : bool, optional</span>
+<span class="sd">        If True, then the sets of vertices and links are retained in the</span>
+<span class="sd">        model. The defaults are False.</span>
+<span class="sd">    layer_name : str, optional</span>
+<span class="sd">        Name of the layer from which OSM features are read. The default</span>
+<span class="sd">        is &#39;lines&#39;.</span>
+<span class="sd">    exclude : List[str], optional</span>
+<span class="sd">        Tags to exclude when reading OSM files. By default, the</span>
+<span class="sd">        following tags are included: &#39;living_street&#39;, &#39;residential&#39;,</span>
+<span class="sd">        &#39;unclassified&#39;, &#39;tertiary_link&#39;, &#39;tertiary&#39;, &#39;secondary_link&#39;,</span>
+<span class="sd">        &#39;secondary&#39;, &#39;primary_link&#39;, &#39;primary&#39;, &#39;trunk_link&#39;, &#39;trunk&#39;,</span>
+<span class="sd">        &#39;motorway_link&#39;, &#39;motorway&#39;.</span>
+<span class="sd">    r : float, optional</span>
+<span class="sd">        Search radius for nearby points in degrees, used for querying</span>
+<span class="sd">        elevations via IDW interpolation. The default is 0.001.</span>
+<span class="sd">    p : int, optional</span>
+<span class="sd">        Power setting for IDW interpolation. The default is 2.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`Model`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Gather file paths</span>
+    <span class="n">unpacked</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">unpacked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">unpacked</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">continue</span>
+    <span class="nb">sorted</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">unpacked</span><span class="p">:</span>
+        <span class="nb">sorted</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># Gather map data</span>
+    <span class="k">if</span> <span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.osm&#39;</span><span class="p">]:</span>
+        <span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">links</span> <span class="o">=</span> <span class="n">read_osms</span><span class="p">(</span>
+            <span class="o">*</span><span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.osm&#39;</span><span class="p">],</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">,</span> <span class="n">layer_name</span><span class="o">=</span><span class="n">layer_name</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">,</span>
+            <span class="n">return_vertices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_links</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Calculate elevations</span>
+    <span class="k">if</span> <span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.osm&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">]:</span>
+        <span class="n">nodes</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">],</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">],</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">keep_vertices</span><span class="p">:</span>
+            <span class="n">vertices</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">],</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">keep_links</span><span class="p">:</span>
+            <span class="n">links</span><span class="o">.</span><span class="n">elevate</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">],</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_vertices</span><span class="p">:</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_links</span><span class="p">:</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">Model</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">links</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_ccl</span><span class="p">(</span><span class="n">neighbors</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Clustering via connected-component labeling.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    neighbors : Dict[int, Set[int]]</span>
+<span class="sd">        Dictionary mapping node to its neighbors.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    List[Set[int]]</span>
+<span class="sd">        List of connected components.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">s</span><span class="p">})</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">]</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">queue</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">m</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">clusters</span>
+
+
+<span class="k">def</span> <span class="nf">simplify</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Model</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ymin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ymax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Return simplified model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : :class:`Model`</span>
+<span class="sd">        Original model.</span>
+<span class="sd">    clusters : int, optional</span>
+<span class="sd">        Number of clusters to keep.</span>
+<span class="sd">    xmin, xmax, ymin, ymax : float or None, optional</span>
+<span class="sd">        Bounds within which features are kept.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`Model`</span>
+<span class="sd">        Simplified model.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</pre></div>
+
+              </article>
+              
+
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+              </footer>
+              
+          </div>
+          
+      </div>
+    </div>
+
+  
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
+    &copy; Copyright 2022, Kota Sakazaki.<br>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+</p>
+  </div>
+  
+</div>
+</footer>
+  </body>
+</html>
