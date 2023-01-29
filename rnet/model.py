@@ -528,8 +528,60 @@ def simplify(model: Model, *, xmin: float = None, ymin: float = None,
 
     Examples
     --------
-    >>> m = rn.model("shinjuku.osm")
-    >>> n = rn.simplify(m, xmin=139.7)
+    >>> m = rn.model("./resources/shinjuku.osm")
+    >>> m.info()
+    <class 'rnet.model.Model'>
+     |
+     |  Attributes:
+     |
+     |  'nodes'
+     |  <class 'rnet.dataset.NodeData'>
+     |  Count: 944
+     |  CRS: EPSG:4326
+     |  dims: 3
+     |  xmin: 139.6867708
+     |  ymin: 35.6782595
+     |  xmax: 139.7213249
+     |  ymax: 35.7018425
+     |
+     |  'edges'
+     |  <class 'rnet.dataset.EdgeData'>
+     |  Count: 2,816
+     |  CRS: EPSG:4326
+     |  dims: 2
+     |  xmin: 139.6867708
+     |  ymin: 35.6782595
+     |  xmax: 139.7213249
+     |  ymax: 35.7018425
+
+    Construct a simplified model by applying a lower bound on the
+    :math:`x`-coordinates::
+
+        >>> n = rn.simplify(m, xmin=139.7)
+        >>> n.info()
+        <class 'rnet.model.Model'>
+         |
+         |  Attributes:
+         |
+         |  'nodes'
+         |  <class 'rnet.dataset.NodeData'>
+         |  Count: 475
+         |  CRS: EPSG:4326
+         |  dims: 3
+         |  xmin: 139.7000571
+         |  ymin: 35.6782595
+         |  xmax: 139.7213249
+         |  ymax: 35.6982890
+         |
+         |  'edges'
+         |  <class 'rnet.dataset.EdgeData'>
+         |  Count: 1,418
+         |  CRS: EPSG:4326
+         |  dims: 2
+         |  xmin: 139.7000571
+         |  ymin: 35.6782595
+         |  xmax: 139.7213249
+         |  ymax: 35.6982890
     '''
     nodes = NodeData(
         model.nodes._df.iloc[model.nodes.mask(xmin, ymin, xmax, ymax)],
