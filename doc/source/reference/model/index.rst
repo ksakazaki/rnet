@@ -16,5 +16,6 @@ The Model Class
       Model.densify
       Model.elevate
       Model.from_pickle
+      Model.info
       Model.to_pickle
       Model.transform
