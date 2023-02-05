@@ -8,6 +8,9 @@ from rnet import gdal_merge
 from rnet.utils import random_string
 
 
+__all__ = ['densify', 'idw_query', 'transform_coords']
+
+
 def densify(points: np.ndarray, interval: float) -> np.ndarray:
     '''
     Return densified sequence of points.
