@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from osgeo import gdal
 from osgeo.osr import CoordinateTransformation, SpatialReference
-from rnet import gdal_merge
+from osgeo_utils import gdal_merge
 from rnet.utils import random_string
 
 
