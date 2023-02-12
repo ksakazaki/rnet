@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-import dataclasses
-from dataclasses import dataclass
 from functools import partial
 import sys
-from typing import Any, Dict, List, NamedTuple, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 from rnet.coordinates import transform_coords, idw_query, densify
@@ -78,7 +76,7 @@ class Dataset(ABC):
         return f'<{self.__class__.__name__}: {len(self):,} rows (EPSG:{self._crs})>'
 
     def __iter__(self):
-        return self._df.itertuples(name=self._BASE_ELEMENT.__name__)
+        return self._df.itertuples(name=self._ELEMENT_NAME)
 
     @property
     def crs(self) -> int:
@@ -217,24 +215,19 @@ class Dataset(ABC):
         return cls(pd.read_pickle(path_to_pickle), crs)
 
 
-def dataset(base: dataclass, layer_name: str = None):
+def dataset(layer_name: Union[str, None] = None):
     '''
     Decorator for setting class attributes of a dataset.
 
     Parameters
     ----------
-    base : :class:`dataclasses.dataclass`
-        Data class representing base element. This data class is used to
-        validate the data frame with which the :class:`Dataset` instance
-        is initialized. Namely, data class fields without default values
-        are required, and those with default values are optional.
     name : str or None, optional
         Layer name used when rendering features.
     '''
     def decorate(cls):
-        cls._BASE_ELEMENT = base
-        if layer_name:
-            cls._LAYER_NAME = base.__name__.lower() + 's'
+        cls._ELEMENT_NAME = cls.__name__.rstrip('Data')
+        if not layer_name:
+            cls._LAYER_NAME = cls._ELEMENT_NAME.lower() + 's'
         else:
             cls._LAYER_NAME = layer_name
         return cls
@@ -272,24 +265,7 @@ def validate(df: pd.DataFrame, fields: List[Field]) -> pd.DataFrame:
     return df
 
 
-@dataclass
-class Point:
-    '''
-    Class representing a two- or three-dimensional point.
-
-    Parameters
-    ----------
-    x, y : float
-        :math:`x`- and :math:`y`-coordinates.
-    z : float, optional
-        :math:`z`-coordinate. The default is None.
-    '''
-    x: float
-    y: float
-    z: float = None
-
-
-@dataset(Point)
+@dataset()
 class PointData(Dataset):
     '''
     Class representing point data.
@@ -476,25 +452,7 @@ class PointData(Dataset):
         self._crs = dst
 
 
-@dataclass
-class Vertex(Point):
-    '''
-    Class representing a two- or three-dimensional vertex.
-
-    Vertices are the points along each road that define their
-    geometries.
-
-    Parameters
-    ----------
-    x, y : float
-        :math:`x`- and :math:`y`-coordinates.
-    z : float, optional
-        :math:`z`-coordinate. The default is None.
-    '''
-    pass
-
-
-@dataset(Vertex, 'vertices')
+@dataset('vertices')
 class VertexData(PointData):
     '''
     Class representing vertex data.
@@ -509,25 +467,7 @@ class VertexData(PointData):
     pass
 
 
-@dataclass
-class Node(Point):
-    '''
-    Class representing a two- or three-dimensional node.
-
-    Nodes represent intersections and dead-ends in the road network
-    model.
-
-    Parameters
-    ----------
-    x, y : float
-        :math:`x`- and :math:`y`-coordinates.
-    z : float, optional
-        :math:`z`-coordinate. The default is None.
-    '''
-    pass
-
-
-@dataset(Node)
+@dataset()
 class NodeData(PointData):
     '''
     Class representing node data.
@@ -542,16 +482,7 @@ class NodeData(PointData):
     pass
 
 
-@dataclass
-class Connection:
-    i: int
-    j: int
-    tag: str
-    length: float = None
-    coords: np.ndarray = None
-
-
-@dataset(Connection)
+@dataset()
 class ConnectionData(Dataset):
     '''
     Class for representing a dataset of connections between points.
@@ -702,8 +633,7 @@ class ConnectionData(Dataset):
         self._df['coords'] = list(xy)
         self._df['length'] = list(map(polyline_length, xy))
 
-    def get(self, i: int = None, j: int = None
-            ) -> Union[Connection, List[Connection]]:
+    def get(self, i: int = None, j: int = None) -> Iterable[tuple]:
         '''
         Retrieve from the dataset a specific connection, :math:`(i, j)`,
         connections starting from point :math:`i`, or connections ending
@@ -717,10 +647,7 @@ class ConnectionData(Dataset):
         
         Returns
         -------
-        :class:`Connection` or List[:class:`Connection`]
-            A :class:`Connection` or list of :class:`Connections`. An
-            empty list is returned if no corresponding connections are
-            found.
+        Iterable[tuple]
         '''
         if i is None and j is None:
             ids = [np.random.choice(len(self))]
@@ -732,12 +659,7 @@ class ConnectionData(Dataset):
             ids = np.flatnonzero(self._df['i'] == i)
         elif j is not None:
             ids = np.flatnonzero(self._df['j'] == j)
-        out = []
-        for id_ in ids:
-            element = self._BASE_ELEMENT(*self._df.iloc[id_])
-            element.Index = id_
-            out.append(element)
-        return out[0] if len(out) == 1 else out
+        return self._df.iloc[ids].itertuples(name=self._ELEMENT_NAME)
 
     def info(self, sep: str = '\n', ret: bool = False) -> None:
         '''
@@ -836,12 +758,7 @@ class ConnectionData(Dataset):
         pass
 
 
-@dataclass
-class Link(Connection):
-    pass
-
-
-@dataset(Link)
+@dataset()
 class LinkData(ConnectionData):
     
     def coords(self, dims: int = None) -> np.ndarray:
@@ -949,12 +866,7 @@ class LinkData(ConnectionData):
         self._crs = dst
 
 
-@dataclass
-class Edge(Connection):
-    pass
-
-
-@dataset(Edge)
+@dataset()
 class EdgeData(ConnectionData):
     
     def coords(self, dims: int = None) -> np.ndarray:
