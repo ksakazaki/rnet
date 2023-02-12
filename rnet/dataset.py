@@ -100,7 +100,41 @@ class Dataset(ABC):
         -------
         :class:`~pandas.DataFrame`
         '''
-        return self._df[active_columns(self._df, self.FIELDS)]
+        return self._df[self._active_columns()]
+
+    def _active_columns(self) -> List[str]:
+        '''
+        Return list of active columns.
+
+        A column is active if (a) it is a required column, or (b) it is
+        an optional column containing non-default values.
+
+        Parameters
+        ----------
+        df : :class:`pandas.DataFrame`
+            Data frame.
+        fields : List[Field]
+            List of fields.
+
+        Returns
+        -------
+        cols : List[str]
+            List containing names of active columns.
+        '''
+        cols = []
+        for field in self.FIELDS:
+            if field.required:
+                cols.append(field.name)
+            else:
+                try:
+                    assert not np.all(np.isnan(self._df[field.name]))
+                except AssertionError:
+                    continue
+                except:
+                    cols.append(field.name)
+                else:
+                    cols.append(field.name)
+        return cols
 
     def reset_dtypes(self) -> None:
         '''
@@ -238,39 +272,6 @@ def validate(df: pd.DataFrame, fields: List[Field]) -> pd.DataFrame:
     return df
 
 
-def active_columns(df: pd.DataFrame, fields: List[Field]) -> List[str]:
-    '''
-    Return names of active columns in a data frame.
-
-    A column is active if (a) it is a required column, or (b) it is an
-    optional column containing non-default values.
-
-    Parameters
-    ----------
-    df : :class:`pandas.DataFrame`
-        Data frame.
-    fields : List[Field]
-        List of fields.
-
-    Returns
-    -------
-    cols : List[str]
-        List containing names of active columns.
-    '''
-    cols = []
-    for field in fields:
-        if field.required:
-            cols.append(field.name)
-        elif field.default is None:
-            if (('int' in field.type) or ('float' in field.type)) \
-                    and np.all(np.isnan(df[field.name])):
-                continue
-            elif np.all(df[field.name] == field.default):
-                continue
-        cols.append(field.name)
-    return cols
-
-
 @dataclass
 class Point:
     '''
@@ -356,7 +357,7 @@ class PointData(Dataset):
         dims : int
             Number of dimensions.
         '''
-        if 'z' in active_columns(self._df, self.FIELDS):
+        if 'z' in self._active_columns():
             return 3
         else:
             return 2
@@ -647,7 +648,7 @@ class ConnectionData(Dataset):
         -------
         int or None
         '''
-        if 'coords' in active_columns(self._df, self.FIELDS):
+        if 'coords' in self._active_columns():
             return self._df['coords'].iloc[0].shape[1]
         else:
             return
