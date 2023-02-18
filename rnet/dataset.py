@@ -560,19 +560,17 @@ class PlaceData(PointData):
         for (i, j) in tree.query_pairs(radius):
             neighbors[i].add(j)
             neighbors[j].add(i)
+        neighbors = dict(neighbors)
+        num_places = len(self)
+        for index in range(num_places):
+            if index not in neighbors:
+                neighbors[index] = set()
 
         # Form groups
-        num_places = len(self)
-        group_ids = [0] * num_places
+        group_ids = [None] * num_places
         for group_id, group_members in enumerate(ccl(neighbors), 1):
             for member in group_members:
                 group_ids[member] = group_id
-
-        # Single places are also given a unique group ID
-        for index in range(num_places):
-            if not group_ids[index]:
-                group_id += 1
-                group_ids[index] = group_id
         self._df['group'] = group_ids
 
 
