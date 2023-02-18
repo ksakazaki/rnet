@@ -1,7 +1,10 @@
+from __future__ import annotations
 from typing import List
 from rnet.env import _QGIS_AVAILABLE, require_qgis
 from rnet.dataset import Field, Dataset, PointData, ConnectionData
 from rnet.taskmanager import create_and_queue
+
+__all__ = ['render']
 
 if _QGIS_AVAILABLE:
     from PyQt5.QtCore import QVariant
@@ -12,9 +15,8 @@ if _QGIS_AVAILABLE:
         QgsTask,
         QgsVectorLayer
     )
-
-
-__all__ = ['render']
+else:
+    QgsTask = object
 
 
 class RenderTask(QgsTask):
