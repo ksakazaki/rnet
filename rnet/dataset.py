@@ -6,6 +6,8 @@ import sys
 from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
+from scipy.spatial import cKDTree
+from rnet.algorithms import ccl
 from rnet.coordinates import transform_coords, idw_query, densify
 from rnet.env import _QGIS_AVAILABLE, require_qgis
 from rnet.geometry import polyline_length
@@ -27,7 +29,7 @@ class Field(NamedTuple):
     type: str
     required: bool
     include: bool = True
-    default: Any = None
+    default: Any = np.nan
 
 
 class Error(Exception):
@@ -519,6 +521,59 @@ class NodeData(PointData):
         EPSG code of CRS in which node coordinates are represented.
     '''
     pass
+
+
+@dataset()
+class PlaceData(PointData):
+    '''
+    Class for representing place data.
+
+    Parameters
+    ----------
+    df : :class:`pandas.DataFrame`
+        Data frame.
+    crs : int
+        EPSG code of CRS in which node coordinates are represented.
+    '''
+
+    FIELDS = (
+        Field('name', 'object', True),
+        Field('x', 'float64', True, False),
+        Field('y', 'float64', True, False),
+        Field('z', 'float64', False),
+        Field('group', 'uint32', False, default=-1)
+    )
+
+    def group(self, radius: float):
+        '''
+        Group places via connected component labeling. Places are
+        connected if they are located within the given radius.
+
+        Parameters
+        ----------
+        radius : float
+            Places are connected if they are located within this radius.
+        '''
+        # Search for neighbors
+        tree = cKDTree(self.coords(2))
+        neighbors = defaultdict(set)
+        for (i, j) in tree.query_pairs(radius):
+            neighbors[i].add(j)
+            neighbors[j].add(i)
+
+        # Form groups
+        num_places = len(self)
+        group_ids = [0] * num_places
+        for group_id, group_members in enumerate(ccl(neighbors), 1):
+            for member in group_members:
+                group_ids[member] = group_id
+
+        # Single places are also given a unique group ID
+        for index in range(num_places):
+            if not group_ids[index]:
+                group_id += 1
+                group_ids[index] = group_id
+        self._df['group'] = group_ids
 
 
 @dataset()
