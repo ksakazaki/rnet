@@ -14,6 +14,9 @@ if _QGIS_AVAILABLE:
     )
 
 
+__all__ = ['render']
+
+
 class RenderTask(QgsTask):
     '''
     Task for rendering features.
@@ -82,7 +85,23 @@ def _create_temp_layer(geometry: str, layername: str, crs: int,
     return vl
 
 
+@require_qgis
 def render(dataset: Dataset):
+    '''
+    Render a dataset in QGIS.
+
+    .. versionadded:: 0.0.7
+
+    Parameters
+    ----------
+    dataset : :class:`Dataset`
+        The dataset to be rendered.
+
+    Returns
+    -------
+    :class:`~qgis.core.QgsVectorLayer`
+        Temporary vector layer.
+    '''
     if isinstance(dataset, PointData):
         geometry = 'point'
     elif isinstance(dataset, ConnectionData):

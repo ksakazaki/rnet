@@ -40,14 +40,14 @@ extensions = ['sphinx.ext.autodoc',
 autodoc_default_options = {
     'show-inheritance': True
 }
-autodoc_mock_imports = ['osgeo', 'qgis']
+autodoc_mock_imports = ['osgeo', 'osgeo_utils', 'qgis']
 autodoc_typehints = 'none'
 numpydoc_attributes_as_param_list = False
 
 intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    # 'qgis': ('https://qgis.org/pyqgis/master/', None)
+    'qgis': ('https://qgis.org/pyqgis/master/', None)
 }
 
 # Add any paths that contain templates here, relative to this directory.
