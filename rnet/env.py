@@ -1,4 +1,9 @@
 from functools import wraps
+import os
+
+from osgeo import ogr
+ogr.Open(os.path.join(os.path.dirname(
+    os.path.dirname(__file__)), 'resources', 'shinjuku.osm'))
 
 try:
     from qgis.core import QgsProject
