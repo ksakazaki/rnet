@@ -2,11 +2,20 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
 import sys
-from typing import Any, Dict, Iterable, List, NamedTuple, Set, Tuple, Union
+from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 from rnet.coordinates import transform_coords, idw_query, densify
+from rnet.env import _QGIS_AVAILABLE, require_qgis
 from rnet.geometry import polyline_length
+
+if _QGIS_AVAILABLE:
+    from qgis.core import (
+        QgsFeature,
+        QgsGeometry,
+        QgsPointXY,
+        QgsTask
+    )
 
 
 Action = Tuple[int, int]  # (connection_id, destination_id)
@@ -16,6 +25,7 @@ class Field(NamedTuple):
     name: str
     type: str
     required: bool
+    include: bool = True
     default: Any = None
 
 
@@ -286,8 +296,8 @@ class PointData(Dataset):
     '''
 
     FIELDS = (
-        Field('x', 'float64', True),
-        Field('y', 'float64', True),
+        Field('x', 'float64', True, False),
+        Field('y', 'float64', True, False),
         Field('z', 'float64', False)
     )
 
@@ -361,6 +371,29 @@ class PointData(Dataset):
             interpolation.
         '''
         self._df['z'] = idw_query(self.coords(2), self.crs, *paths, r=r, p=p)
+
+    @require_qgis
+    def features(self, task: QgsTask) -> Generator[QgsFeature, None, None]:
+        '''
+        Generate features for insertion into a vector layer.
+
+        Parameters
+        ----------
+        task : :class:`~qgis.core.QgsTask`
+            Task for rendering features.
+        
+        Yields
+        ------
+        :class:`~qgis.core.QgsFeature`
+        '''
+        num_rows = len(self)
+        includes = [index for index, field in enumerate(self.FIELDS, 1) if field.include]
+        for i, item in enumerate(self):
+            task.setProgress(i/num_rows*100)
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(item.x, item.y)))
+            feat.setAttributes([item.Index] + [item[index] for index in includes])
+            yield feat
 
     def flatten(self):
         '''
@@ -505,7 +538,7 @@ class ConnectionData(Dataset):
         Field('j', 'uint32', True),
         Field('tag', 'category', True),
         Field('length', 'float64', False),
-        Field('coords', 'object', False)
+        Field('coords', 'object', False, False)
     )
 
     def __init__(self, df: pd.DataFrame, crs: int = None, *, directed: bool
@@ -619,6 +652,30 @@ class ConnectionData(Dataset):
             interpolation.
         '''
         pass
+
+    @require_qgis
+    def features(self, task: QgsTask) -> Generator[QgsFeature, None, None]:
+        '''
+        Generate features for insertion into a vector layer.
+
+        Parameters
+        ----------
+        task : :class:`~qgis.core.QgsTask`
+            Task for rendering features.
+        
+        Yields
+        ------
+        :class:`~qgis.core.QgsFeature`
+        '''
+        num_rows = len(self)
+        includes = [index for index, field in enumerate(self.FIELDS, 1) if field.include]
+        for i, item in enumerate(self):
+            task.setProgress(i/num_rows*100)
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromPolylineXY(
+                [QgsPointXY(x, y) for (x, y) in item.coords]))
+            feat.setAttributes([item.Index] + [item[index] for index in includes])
+            yield feat
 
     def flatten(self) -> None:
         '''
