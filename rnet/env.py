@@ -11,15 +11,15 @@ else:
 def require_qgis(func):
     '''
     Wrapper for functions that require QGIS library.
-    
+
     Raises
     ------
     NotImplementedError
         If a function with this decorator is run outside of QGIS.
-    
+
     Example
     -------
-    
+
         from qgis.core import QgsProject
         from rnet import require_qgis
 

@@ -62,7 +62,7 @@ def idw_query(points: np.ndarray, crs: int, *paths: str, r: float = 1e-3,
     return_xy : bool, optional
         If True, :math:`(x, y, z)` coordinates are returned. Otherwise,
         only :math:`z`-coordinates are returned. The default is False.
-    
+
     Returns
     -------
     elevations : :class:`~numpy.ndarray`, shape (N,)
@@ -75,7 +75,8 @@ def idw_query(points: np.ndarray, crs: int, *paths: str, r: float = 1e-3,
     elif len(paths) == 1:
         path = paths[0]
     else:
-        path = os.path.join(os.path.commonpath(paths), random_string('merged_', '.tif'))
+        path = os.path.join(
+            os.path.commonpath(paths), random_string('merged_', '.tif'))
         gdal_merge.main(['', '-o', path, *paths])
     source = gdal.Open(path)
     x0, dx, _, y0, _, dy = source.GetGeoTransform()
@@ -90,8 +91,8 @@ def idw_query(points: np.ndarray, crs: int, *paths: str, r: float = 1e-3,
         points_ = points
     else:
         points_ = transform_coords(points, src=crs, dst=4326)
-    indices_x = np.searchsorted(x, points_[:,0])
-    indices_y = ny - np.searchsorted(y[::-1], points_[:,1])
+    indices_x = np.searchsorted(x, points_[:, 0])
+    indices_y = ny - np.searchsorted(y[::-1], points_[:, 1])
     dx = int(np.abs(r / dx))
     dy = int(np.abs(r / dy))
     left = np.clip(indices_x - dx, 0, None)
@@ -101,12 +102,12 @@ def idw_query(points: np.ndarray, crs: int, *paths: str, r: float = 1e-3,
 
     elevations = []
     for p, l, r, t, b in zip(points_, left, right, top, bottom):
-        z_ = z[t:b,l:r]  # Elevations of nearby points
+        z_ = z[t:b, l:r]  # Elevations of nearby points
         xs, ys = np.meshgrid(x[l:r]-p[0], y[t:b]-p[1])
         d = np.sqrt(xs**2 + ys**2)  # Distances to nearby points
         elev = float(np.sum(z_/d) / np.sum(1/d))
         elevations.append(elev)
-    
+
     if return_xy:
         return np.column_stack((points, elevations))
     else:
@@ -130,7 +131,7 @@ def transform_coords(*args, src: int, dst: int, copy: bool = False
 
     src, dst : int
         EPSG codes of source and destination CRSs.
-    
+
     Other parameters
     ----------------
     copy : bool, optional
@@ -161,10 +162,12 @@ def transform_coords(*args, src: int, dst: int, copy: bool = False
 
     M = coords.shape[1]
     if M == 2:
-        transformed = np.array(ct.TransformPoints(coords[:,[1,0]]))[:,[1,0]]
+        transformed = np.array(
+            ct.TransformPoints(coords[:, [1, 0]]))[:, [1, 0]]
     elif M == 3:
-        transformed = np.array(ct.TransformPoints(coords[:,[1,0,2]]))[:,[1,0,2]]
-    
+        transformed = np.array(
+            ct.TransformPoints(coords[:, [1, 0, 2]]))[:, [1, 0, 2]]
+
     if len(args) == 1:
         return transformed
     elif len(args) == 2:

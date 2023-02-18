@@ -11,12 +11,13 @@ class Error(Exception):
 class ConnectivityError(Exception):
     '''
     Raised if a path between nodes does not exist.
-    
+
     Parameters
     ----------
     s, g : int
         Source and destination node IDs.
     '''
+
     def __init__(self, s: int, g: int) -> None:
         super().__init__(f'no path from {s} to {g}')
 

@@ -13,7 +13,7 @@ def random_string(prepend='', append='', length=20):
         are empty strings.
     length : int, optional
         String length. The default is 20.
-    
+
     Returns
     -------
     str

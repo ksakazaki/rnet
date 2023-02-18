@@ -42,6 +42,7 @@ class DimensionError(Error):
     av, req : int
         Available and requested dimensions.
     '''
+
     def __init__(self, av: int, req: int):
         super().__init__(f'{av} dimensions available, {req} requested')
 
@@ -55,6 +56,7 @@ class MissingColumnError(Error):
     column_name : str
         Name of missing column.
     '''
+
     def __init__(self, column_name: str):
         super().__init__(f'missing required column {column_name!r}')
 
@@ -258,7 +260,7 @@ def validate(df: pd.DataFrame, fields: List[Field]) -> pd.DataFrame:
     Returns
     -------
     df : :class:`pandas.DataFrame`
-    
+
     Raises
     ------
     MissingColumnError
@@ -286,7 +288,7 @@ class PointData(Dataset):
         Data frame.
     crs : int
         EPSG code of CRS in which point coordinates are represented.
-    
+
     See also
     --------
     :class:`VertexData`
@@ -311,12 +313,12 @@ class PointData(Dataset):
             Whether to return two- or three-dimensional coordinates. If
             None, then the :attr:`dims` property is used. The default is
             None.
-        
+
         Returns
         -------
         :class:`numpy.ndarray`, shape (N, 2) or (N, 3)
             Point coordinates.
-        
+
         Raises
         ------
         DimensionError
@@ -347,7 +349,7 @@ class PointData(Dataset):
             return 3
         else:
             return 2
-    
+
     def elevate(self, *paths: str, r: int = 1e-3, p: int = 2):
         '''
         Compute elevations and update :math:`z`-coordinates.
@@ -361,7 +363,7 @@ class PointData(Dataset):
             0.001.
         p : int, optional
             Power setting for IDW interpolation. The default is 2.
-        
+
         See also
         --------
         :meth:`flatten`
@@ -381,18 +383,21 @@ class PointData(Dataset):
         ----------
         task : :class:`~qgis.core.QgsTask`
             Task for rendering features.
-        
+
         Yields
         ------
         :class:`~qgis.core.QgsFeature`
         '''
         num_rows = len(self)
-        includes = [index for index, field in enumerate(self.FIELDS, 1) if field.include]
+        includes = [index for index, field in enumerate(self.FIELDS, 1)
+                    if field.include]
         for i, item in enumerate(self):
             task.setProgress(i/num_rows*100)
             feat = QgsFeature()
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(item.x, item.y)))
-            feat.setAttributes([item.Index] + [item[index] for index in includes])
+            feat.setGeometry(QgsGeometry.fromPointXY(
+                QgsPointXY(item.x, item.y)))
+            feat.setAttributes(
+                [item.Index] + [item[index] for index in includes])
             yield feat
 
     def flatten(self):
@@ -417,7 +422,7 @@ class PointData(Dataset):
         ret : bool, optional
             If True, the information is returned as a string. Otherwise,
             it is printed. The default is False.
-        
+
         Returns
         -------
         info : str
@@ -451,7 +456,7 @@ class PointData(Dataset):
         xmin, ymin, xmax, ymax : float or None, optional
             Minimum and maximum :math:`x`- and :math:`y`-coordinates.
             The defaults are None.
-        
+
         Returns
         -------
         mask : :class:`~numpy.ndarray`
@@ -532,7 +537,7 @@ class ConnectionData(Dataset):
     directed : bool
         Whether connections are directed.
     '''
-    
+
     FIELDS = (
         Field('i', 'uint32', True),
         Field('j', 'uint32', True),
@@ -582,7 +587,7 @@ class ConnectionData(Dataset):
         -------
         :class:`~numpy.ndarray`
             Connection coordinates.
-        
+
         Raises
         ------
         DimensionError
@@ -662,19 +667,21 @@ class ConnectionData(Dataset):
         ----------
         task : :class:`~qgis.core.QgsTask`
             Task for rendering features.
-        
+
         Yields
         ------
         :class:`~qgis.core.QgsFeature`
         '''
         num_rows = len(self)
-        includes = [index for index, field in enumerate(self.FIELDS, 1) if field.include]
+        includes = [index for index, field in enumerate(self.FIELDS, 1)
+                    if field.include]
         for i, item in enumerate(self):
             task.setProgress(i/num_rows*100)
             feat = QgsFeature()
             feat.setGeometry(QgsGeometry.fromPolylineXY(
                 [QgsPointXY(x, y) for (x, y) in item.coords]))
-            feat.setAttributes([item.Index] + [item[index] for index in includes])
+            feat.setAttributes(
+                [item.Index] + [item[index] for index in includes])
             yield feat
 
     def flatten(self) -> None:
@@ -701,7 +708,7 @@ class ConnectionData(Dataset):
         i, j : int or None, optional
             Start and end point ids. If `i` and `j` are both None, then
             a randomly chosen connection is returned.
-        
+
         Returns
         -------
         Iterable[tuple]
@@ -729,7 +736,7 @@ class ConnectionData(Dataset):
         ret : bool, optional
             If True, the information is returned as a string. Otherwise,
             it is printed. The default is False.
-        
+
         Returns
         -------
         info : str
@@ -764,7 +771,7 @@ class ConnectionData(Dataset):
         xmin, ymin, xmax, ymax : float or None, optional
             Minimum and maximum :math:`x`- and :math:`y`-coordinates.
             The defaults are None.
-        
+
         Returns
         -------
         mask : :class:`~numpy.ndarray`
@@ -817,7 +824,7 @@ class ConnectionData(Dataset):
 
 @dataset()
 class LinkData(ConnectionData):
-    
+
     def coords(self, dims: int = None) -> np.ndarray:
         '''
         Return link coordinates.
@@ -835,18 +842,18 @@ class LinkData(ConnectionData):
             Link coordinates. :math:`N` is the number of links in the
             dataset, and :math:`M` is the number of coordinate
             dimensions.
-        
+
         Raises
         ------
         DimensionError
             If `dims` exceeds the :attr:`dims` attribute.
         '''
         if self.dims:
-            coords = np.vstack(self._df['coords']).reshape(-1,2,self.dims)
+            coords = np.vstack(self._df['coords']).reshape(-1, 2, self.dims)
             if (dims is None) or (dims == self.dims):
                 return coords
             elif dims == 2:
-                return coords[:,:,:2]
+                return coords[:, :, :2]
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
 
@@ -873,7 +880,7 @@ class LinkData(ConnectionData):
             interpolation.
         '''
         xyz = idw_query(np.vstack(self.coords(2)), self.crs, *paths, r=r, p=p,
-                        return_xy=True).reshape(-1,2,3)
+                        return_xy=True).reshape(-1, 2, 3)
         self._df['coords'] = list(xyz)
         self._df['length'] = list(map(polyline_length, xyz))
 
@@ -887,23 +894,23 @@ class LinkData(ConnectionData):
         xmin, ymin, xmax, ymax : float or None, optional
             Minimum and maximum :math:`x`- and :math:`y`-coordinates.
             The defaults are None.
-        
+
         Returns
         -------
         mask : :class:`~numpy.ndarray`
             Masked array.
         '''
-        coords = self.coords(2).reshape(-1,2)
+        coords = self.coords(2).reshape(-1, 2)
         mask = np.full(2 * len(self), True)
         if xmin:
-            mask = mask & (coords[:,0] > xmin)
+            mask = mask & (coords[:, 0] > xmin)
         if ymin:
-            mask = mask & (coords[:,1] > ymin)
+            mask = mask & (coords[:, 1] > ymin)
         if xmax:
-            mask = mask & (coords[:,0] < xmax)
+            mask = mask & (coords[:, 0] < xmax)
         if ymax:
-            mask = mask & (coords[:,1] < ymax)
-        mask = mask.reshape(-1,2)
+            mask = mask & (coords[:, 1] < ymax)
+        mask = mask.reshape(-1, 2)
         return np.all(mask, axis=1)
 
     def transform(self, dst: int) -> None:
@@ -917,7 +924,7 @@ class LinkData(ConnectionData):
         '''
         transformed = transform_coords(
             np.vstack(self._df['coords']), src=self.crs, dst=dst
-            ).reshape(-1,2,self.dims)
+        ).reshape(-1, 2, self.dims)
         self._df['coords'] = list(transformed)
         self._df['length'] = list(map(polyline_length, transformed))
         self._crs = dst
@@ -925,7 +932,7 @@ class LinkData(ConnectionData):
 
 @dataset()
 class EdgeData(ConnectionData):
-    
+
     def coords(self, dims: int = None) -> np.ndarray:
         '''
         Return edge coordinates.
@@ -942,7 +949,7 @@ class EdgeData(ConnectionData):
         :class:`numpy.ndarray`, shape (N,)
             Edge coordinates. :math:`N` is the number of edges in the
             dataset.
-        
+
         Raises
         ------
         DimensionError
@@ -953,7 +960,7 @@ class EdgeData(ConnectionData):
             if (dims is None) or (dims == self.dims):
                 return coords
             elif dims == 2:
-                return np.array([coords_[:,:2] for coords_ in coords],
+                return np.array([coords_[:, :2] for coords_ in coords],
                                 dtype='object')
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
@@ -999,7 +1006,7 @@ class EdgeData(ConnectionData):
         xmin, ymin, xmax, ymax : float or None, optional
             Minimum and maximum :math:`x`- and :math:`y`-coordinates.
             The defaults are None.
-        
+
         Returns
         -------
         mask : :class:`~numpy.ndarray`
@@ -1008,13 +1015,13 @@ class EdgeData(ConnectionData):
         coords = np.vstack(self.coords(2))
         bools = np.full(len(coords), True)
         if xmin:
-            bools = bools & (coords[:,0] > xmin)
+            bools = bools & (coords[:, 0] > xmin)
         if ymin:
-            bools = bools & (coords[:,1] > ymin)
+            bools = bools & (coords[:, 1] > ymin)
         if xmax:
-            bools = bools & (coords[:,0] < xmax)
+            bools = bools & (coords[:, 0] < xmax)
         if ymax:
-            bools = bools & (coords[:,1] < ymax)
+            bools = bools & (coords[:, 1] < ymax)
         mask = []
         for length in map(len, self._df['coords']):
             mask.append(np.all(bools[:length]))

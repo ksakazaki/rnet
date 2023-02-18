@@ -14,20 +14,20 @@ __all__ = ['Model', 'model', 'read_osm', 'read_osms', 'simplify']
 
 
 _OSM_HIERARCHY = {
-    'living_street' : 0,
-    'residential'   : 1,
-    'unclassified'  : 2,
-    'tertiary_link' : 3,
-    'tertiary'      : 4,
+    'living_street': 0,
+    'residential': 1,
+    'unclassified': 2,
+    'tertiary_link': 3,
+    'tertiary': 4,
     'secondary_link': 5,
-    'secondary'     : 6,
-    'primary_link'  : 7,
-    'primary'       : 8,
-    'trunk_link'    : 9,
-    'trunk'         : 10,
-    'motorway_link' : 11,
-    'motorway'      : 12
-    }
+    'secondary': 6,
+    'primary_link': 7,
+    'primary': 8,
+    'trunk_link': 9,
+    'trunk': 10,
+    'motorway_link': 11,
+    'motorway': 12
+}
 
 
 _OSM_TAGS = set(_OSM_HIERARCHY)
@@ -53,7 +53,7 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
     return_links : bool, optional
         If True, also return link data. Links are line segments defined by
         unordered pairs of vertices. The default is False.
-    
+
     Other parameters
     ----------------
     layer_name : str, optional
@@ -108,7 +108,8 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
                 all_tags.append(tag)
 
     # Extract vertices
-    vertices, inv = np.unique(np.concatenate(all_points), axis=0, return_inverse=True)
+    vertices, inv = np.unique(
+        np.concatenate(all_points), axis=0, return_inverse=True)
     vertices = VertexData(pd.DataFrame(vertices, columns=['x', 'y']), 4326)
     if crs != 4326:
         vertices.transform(crs)
@@ -124,8 +125,9 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
 
     # Extract nodes
     nodes_ = np.sort(
-        [k for k, v in Counter(list(links.pairs().flatten())).items() if v != 2]
-        )
+        [k for k, v in Counter(
+            list(links.pairs().flatten())).items() if v != 2]
+    )
     nodes = NodeData(vertices._df.iloc[nodes_], crs)
 
     # Extract edges
@@ -167,14 +169,14 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
     # Re-index nodes
     nodes._df = nodes._df.reset_index(drop=True)
     _, inverse = np.unique(edges.pairs().flatten(), return_inverse=True)
-    edges._df[['i', 'j']] = inverse.reshape(-1,2)
+    edges._df[['i', 'j']] = inverse.reshape(-1, 2)
 
     # Return
     out = [nodes, edges]
     if return_vertices:
         out.append(vertices)
     if return_links:
-        coords = vertices.coords(2)[links.pairs().flatten()].reshape(-1,2,2)
+        coords = vertices.coords(2)[links.pairs().flatten()].reshape(-1, 2, 2)
         links._df['coords'] = list(coords)
         links._df['length'] = list(map(polyline_length, coords))
         links._crs = crs
@@ -204,7 +206,7 @@ def read_osm(path: str, *, crs: int = 4326, return_vertices: bool = False,
     return_links : bool, optional
         If True, also return link data. Links are line segments defined by
         unordered pairs of vertices. The default is False.
-    
+
     Other parameters
     ----------------
     layer_name : str, optional
@@ -257,7 +259,7 @@ class Model:
         Vertex data.
     links : :class:`LinkData` or None, optional
         Link data.
-    
+
     See also
     --------
     :func:`model`
@@ -292,12 +294,12 @@ class Model:
         Read model from pickled representation.
 
         .. versionadded:: 0.0.6
-        
+
         Parameters
         ----------
         path_to_pickle : str
             File path.
-        
+
         Return
         ------
         :class:`Model`
@@ -437,7 +439,7 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         elevations via IDW interpolation. The default is 0.001.
     p : int, optional
         Power setting for IDW interpolation. The default is 2.
-    
+
     Returns
     -------
     :class:`Model`
@@ -485,12 +487,12 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
 def _ccl(neighbors: Dict[int, Set[int]]) -> List[Set[int]]:
     '''
     Clustering via connected-component labeling.
-    
+
     Parameters
     ----------
     neighbors : Dict[int, Set[int]]
         Dictionary mapping node to its neighbors.
-    
+
     Returns
     -------
     List[Set[int]]
@@ -594,15 +596,16 @@ def simplify(model: Model, *, xmin: float = None, ymin: float = None,
     nodes = NodeData(
         model.nodes._df.iloc[model.nodes.mask(xmin, ymin, xmax, ymax)],
         model.nodes._crs
-        )
+    )
     edges = EdgeData(
         model.edges._df.iloc[model.edges.mask(xmin, ymin, xmax, ymax)],
         model.edges._crs,
         directed=model.edges._directed
-        )
+    )
     if hasattr(model, 'vertices'):
         vertices = VertexData(
-            model.vertices._df.iloc[model.vertices.mask(xmin, ymin, xmax, ymax)],
+            model.vertices._df.iloc[
+                model.vertices.mask(xmin, ymin, xmax, ymax)],
             model.vertices._crs
         )
     else:

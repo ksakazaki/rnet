@@ -26,7 +26,7 @@ def polyline_length(coords: np.ndarray) -> float:
     ----------
     coords : :class:`~numpy.ndarray`, shape (N, 2) or (N, 3)
         Coordinates of points along polyline.
-    
+
     Returns
     -------
     float

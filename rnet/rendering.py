@@ -33,12 +33,12 @@ class RenderTask(QgsTask):
         self.data = dataset
         self.vl = vl
         super().__init__(description)
-    
+
     def run(self) -> bool:
         self.vl.dataProvider().addFeatures(self.data.features(self),
                                            QgsFeatureSink.FastInsert)
         return True
-    
+
     def finished(self, success: bool) -> None:
         if success:
             QgsProject.instance().addMapLayer(self.vl)
@@ -60,7 +60,7 @@ def _create_temp_layer(geometry: str, layername: str, crs: int,
         EPSG code of the layer CRS.
     fields : list of :class:`Field`
         List of fields.
-    
+
     Returns
     -------
     :class:`~qgis.core.QgsVectorLayer`
