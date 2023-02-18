@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict
 from itertools import chain
 import pickle
-from typing import Dict, List, Set
+from typing import List
 import os
 import numpy as np
 import pandas as pd
@@ -482,39 +482,6 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     if not keep_links:
         links = None
     return Model(nodes, edges, vertices, links)
-
-
-def _ccl(neighbors: Dict[int, Set[int]]) -> List[Set[int]]:
-    '''
-    Clustering via connected-component labeling.
-
-    Parameters
-    ----------
-    neighbors : Dict[int, Set[int]]
-        Dictionary mapping node to its neighbors.
-
-    Returns
-    -------
-    List[Set[int]]
-        List of connected components.
-    '''
-    clusters = []
-    seen = set()
-    for s in neighbors:
-        if s in seen:
-            continue
-        clusters.append({s})
-        seen.add(s)
-        queue = [s]
-        while len(queue) > 0:
-            m = queue.pop(0)
-            for n in neighbors[m]:
-                if n in seen:
-                    continue
-                clusters[-1].add(n)
-                seen.add(n)
-                queue.append(n)
-    return clusters
 
 
 def simplify(model: Model, *, xmin: float = None, ymin: float = None,
