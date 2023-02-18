@@ -10,19 +10,25 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.getcwd())))
-
+try:
+    import rnet
+except:
+    from unittest.mock import Mock
+    import os
+    import sys
+    sys.modules['osgeo'] = Mock()
+    sys.modules['osgeo.osr'] = Mock()
+    sys.modules['osgeo_utils'] = Mock()
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.getcwd())))
+    import rnet
 
 # -- Project information -----------------------------------------------------
-
 project = 'rnet'
-copyright = '2022, Kota Sakazaki'
-author = 'Kota Sakazaki'
+copyright = '2023, Kota Sakazaki'
+author = rnet.__author__
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.7'
+release = rnet.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,7 +42,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'sphinx.ext.intersphinx',
               'sphinx.ext.napoleon'
-]
+              ]
 autodoc_default_options = {
     'show-inheritance': True
 }
@@ -74,7 +80,7 @@ html_theme_options = {
             "icon": "fab fa-github-square",
             "type": "fontawesome",
         }
-   ]
+    ]
 }
 
 html_context = {
