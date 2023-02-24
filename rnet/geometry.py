@@ -85,6 +85,23 @@ class Circle:
         '''
         return np.sum(np.power(self.center - point, 2)) <= self.r ** 2
 
+    def points(self, start: float = 0.0, end: float = 2*np.pi,
+               step: float = 1e-2) -> np.ndarray:
+        '''
+        Return points on arc between given angles.
+
+        Parameters
+        ----------
+        start, end : float
+            Start and end angles in radians.
+
+        Returns
+        -------
+        :class:`~numpy.ndarray`
+        '''
+        t = np.arange(start, end + step, step)
+        return self.center + self.r * np.column_stack((np.cos(t), np.sin(t)))
+
 
 def outer_arcs(circles: Dict[int, Circle]) -> Dict[int, List[Tuple[float, float]]]:
     '''
