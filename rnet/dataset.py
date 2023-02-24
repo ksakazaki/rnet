@@ -572,6 +572,18 @@ class PlaceData(PointData):
             for member in group_members:
                 group_ids[member] = group_id
         self._df['group'] = group_ids
+        self._radius = radius
+
+    @property
+    def radius(self) -> float:
+        '''
+        Radius used for forming groups.
+
+        Returns
+        -------
+        float
+        '''
+        return self._radius
 
 
 @dataset()
