@@ -1,21 +1,132 @@
-from collections import namedtuple
-from typing import Tuple, List
+from collections import defaultdict
+from dataclasses import dataclass
+from itertools import permutations
+from typing import Dict, List, Tuple
 import numpy as np
 
 
-Circle = namedtuple('Circle', 'x y r')
+@dataclass
+class Circle:
+    '''
+    Class representing a circle.
+
+    Parameters
+    ----------
+    x, y, r : float
+        Circle center and radius.
+    '''
+
+    x: float
+    y: float
+    r: float
+
+    @property
+    def center(self) -> np.ndarray:
+        '''
+        Circle center.
+
+        Returns
+        -------
+        :class:`~numpy.ndarray`
+        '''
+        return np.array([self.x, self.y])
+
+    def intersection_angles(self, other: 'Circle') -> Tuple[float, float]:
+        '''
+        Return angles at which this circle intersects another.
+
+        Parameters
+        ----------
+        other : :class:`Circle`
+            Other circle.
+
+        Returns
+        -------
+        Tuple[float, float]
+        '''
+        dx = other.x - self.x
+        dy = other.y - self.y
+        if dx ** 2 + dy ** 2 > (self.r + other.r) ** 2:
+            # no intersection
+            return
+        d = np.linalg.norm([dx, dy])
+        t = np.arctan2(dy, dx)
+        dt = np.arccos((self.r**2 - other.r**2 + d**2) / (2 * d * self.r))
+        return (t - dt, t + dt)
+
+    def intersection_points(self, other: 'Circle') -> np.ndarray:
+        '''
+        Returns points of intersection with another circle.
+
+        Parameters
+        ----------
+        other : :class:`Circle`
+            Other circle.
+
+        Returns
+        -------
+        :class:`~numpy.ndarray`
+        '''
+        angles = self.intersection_angles(other)
+        if angles is None:
+            return
+        t1, t2 = angles
+        C1, C2 = np.cos([t1, t2])
+        S1, S2 = np.sin([t1, t2])
+        return np.array([self.x, self.y]) + self.r * np.array([[C1, S1], [C2, S2]])
+
+    def contains(self, point: np.ndarray) -> bool:
+        '''
+        Return True if circle contains `point`.
+
+        Returns
+        -------
+        bool
+        '''
+        return np.sum(np.power(self.center - point, 2)) <= self.r ** 2
 
 
-def circle_intersection(circle1: Circle, circle2: Circle) -> Tuple[List[float]]:
+def outer_arcs(circles: Dict[int, Circle]) -> Dict[int, List[Tuple[float, float]]]:
     '''
-    Return angles at which two circles intersect each other.
+    Parameters
+    ----------
+    circles : Dict[int, :class:`Circle`]
+        Dictionary mapping ID to :class:`Circle` instance.
+
+    Parameters
+    ----------
+    Dict[int, List[Tuple[float, float]]]
+        Dictionary mapping ID to corresponding outer arcs.
     '''
-    dx = circle2.x - circle1.x
-    dy = circle2.y - circle1.y
-    d = np.linalg.norm([dx, dy])
-    t = np.arctan2(dy, dx)
-    dt = np.arccos((circle1.r**2 - circle2.r**2 + d**2) / (2 * d * circle1.r))
-    return float(np.degrees(t - dt)), float(np.degrees(t + dt))
+    # Find angles of intersection between all pairs of circles
+    pairs = defaultdict(set)
+    angles = defaultdict(list)
+    for (i, j) in permutations(list(circles), 2):
+        intersection_angles = circles[i].intersection_angles(circles[j])
+        if intersection_angles is not None:
+            pairs[i].add(j)
+            angles[i].extend(intersection_angles)
+    pairs = dict(pairs)
+    angles = dict(angles)
+
+    # Find outer arcs
+    outer_arcs = defaultdict(list)
+    for self_id in angles.keys():
+        self = circles[self_id]
+        sorted_angles = list(sorted(angles[self_id]))
+        sorted_angles += [sorted_angles[0] + 360]
+        num_arcs = len(sorted_angles) - 1
+        for k in range(num_arcs):
+            theta1, theta2 = sorted_angles[k:k+2]
+            alpha = (theta1 + theta2) / 2
+            test_point = np.array([self.x, self.y]) + \
+                self.r * np.array([np.cos(alpha), np.sin(alpha)])
+            for other_id in pairs[self_id]:
+                if circles[other_id].contains(test_point):
+                    break
+            else:
+                outer_arcs[self_id].append((theta1, theta2))
+    return outer_arcs
 
 
 def polyline_length(coords: np.ndarray) -> float:
