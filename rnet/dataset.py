@@ -10,7 +10,7 @@ from scipy.spatial import cKDTree
 from rnet.algorithms import ccl
 from rnet.coordinates import transform_coords, idw_query, densify
 from rnet.env import _QGIS_AVAILABLE, require_qgis
-from rnet.geometry import polyline_length
+from rnet.geometry import Circle, outer_arcs, polyline_length
 
 if _QGIS_AVAILABLE:
     from qgis.core import (
@@ -544,7 +544,7 @@ class PlaceData(PointData):
         Field('group', 'uint32', False, default=-1)
     )
 
-    def group(self, radius: float):
+    def areas(self, radius: float) -> AreaData:
         '''
         Group places via connected component labeling. Places are
         connected if they are located within the given radius.
@@ -555,7 +555,8 @@ class PlaceData(PointData):
             Places are connected if they are located within this radius.
         '''
         # Search for neighbors
-        tree = cKDTree(self.coords(2))
+        coords = self.coords(2)
+        tree = cKDTree(coords)
         neighbors = defaultdict(set)
         for (i, j) in tree.query_pairs(radius):
             neighbors[i].add(j)
@@ -567,12 +568,24 @@ class PlaceData(PointData):
                 neighbors[index] = set()
 
         # Form groups
+        groups = ccl(neighbors)
         group_ids = [None] * num_places
-        for group_id, group_members in enumerate(ccl(neighbors), 1):
+        for group_id, group_members in enumerate(groups, 1):
             for member in group_members:
                 group_ids[member] = group_id
         self._df['group'] = group_ids
         self._radius = radius
+
+        # Compute group borders
+        group_borders = []
+        for group in groups:
+            circles = [Circle(*coords[place_id], radius) for place_id in group]
+            points = []
+            for arc in outer_arcs(*circles):
+                points.append(arc.points()[:-1])
+            group_borders.append(np.vstack(points))
+        return AreaData(
+            pd.DataFrame(zip(group_borders), columns=['coords']), self.crs)
 
     @property
     def radius(self) -> float:
@@ -584,6 +597,52 @@ class PlaceData(PointData):
         float
         '''
         return self._radius
+
+
+@dataset()
+class AreaData(Dataset):
+    '''
+    Class for representing area data.
+
+    .. versionadded:: 0.0.7
+
+    Parameters
+    ----------
+    df : :class:`pandas.DataFrame`
+        Data frame.
+    crs : int
+        EPSG code of CRS in which node coordinates are represented.
+    '''
+
+    FIELDS = (
+        Field('coords', 'object', True, False),
+    )
+
+    @require_qgis
+    def features(self, task: QgsTask) -> Generator[QgsFeature, None, None]:
+        '''
+        Generate features for insertion into a vector layer.
+
+        Parameters
+        ----------
+        task : :class:`~qgis.core.QgsTask`
+            Task for rendering features.
+
+        Yields
+        ------
+        :class:`~qgis.core.QgsFeature`
+        '''
+        num_rows = len(self)
+        includes = [index for index, field in enumerate(self.FIELDS, 1)
+                    if field.include]
+        for i, item in enumerate(self):
+            task.setProgress(i/num_rows*100)
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromPolygonXY([
+                [QgsPointXY(x, y) for (x, y) in item.coords]]))
+            feat.setAttributes(
+                [item.Index] + [item[index] for index in includes])
+            yield feat
 
 
 @dataset()
