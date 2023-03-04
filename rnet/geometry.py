@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import combinations
-from typing import List, Tuple
+from typing import Generator, List, Tuple
 import numpy as np
 
 
@@ -30,6 +30,68 @@ class Circle:
         :class:`~numpy.ndarray`
         '''
         return np.array([self.x, self.y])
+
+    def intersections(self, link_coords: np.ndarray
+                      ) -> Generator[Tuple[int, np.ndarray], None, None]:
+        '''
+        Yield points of intersection between circle and links.
+        Intersection points are ordered in counter-clockwise direction
+        around the circle.
+
+        Parameters
+        ----------
+        link_coords : :class:`~numpy.ndarray`
+            Two-dimensional link coordinates.
+
+        Returns
+        -------
+        Generator[Tuple[int, :class:`~numpy.ndarray`], None, None]
+            Generator that yields 2-tuples containing link index and
+            intersection point.
+
+        References
+        ----------
+        https://mathworld.wolfram.com/Circle-LineIntersection.html
+        '''
+        dx = np.diff(link_coords[:, :, 0], axis=1).flatten()
+        dy = np.diff(link_coords[:, :, 1], axis=1).flatten()
+        dr_sq = dx ** 2 + dy ** 2
+        D = link_coords[:, 0, 0] * link_coords[:, 1, 1] - \
+            link_coords[:, 1, 0] * link_coords[:, 0, 1]
+
+        discriminant = self.r ** 2 * dr_sq - D ** 2
+        discriminant_sqrt = np.sqrt(discriminant)
+        mask = discriminant > 0
+        indices = np.flatnonzero(mask)
+
+        dx = dx[mask]
+        dy = dy[mask]
+        dr_sq = dr_sq[mask]
+        D = D[mask]
+        discriminant_sqrt = discriminant_sqrt[mask]
+
+        x = np.hstack((
+            D * dy + np.sign(dy) * dx * discriminant_sqrt,
+            D * dy - np.sign(dy) * dx * discriminant_sqrt
+        )) / np.hstack((dr_sq, dr_sq))
+        y = np.hstack((
+            -D * dx + np.abs(dy) * discriminant_sqrt,
+            -D * dx - np.abs(dy) * discriminant_sqrt
+        )) / np.hstack((dr_sq, dr_sq))
+        indices = np.hstack((indices, indices))
+
+        scale_factors = (x / np.hstack((dx, dx)))
+        mask = (0 < scale_factors) & (scale_factors < 1)
+        x = x[mask]
+        y = y[mask]
+        indices = indices[mask]
+
+        angles = np.mod(np.arctan2(y, x), 2 * np.pi)
+        sorted_indices = np.argsort(angles)
+        x = x[sorted_indices]
+        y = y[sorted_indices]
+        indices = indices[sorted_indices]
+        return zip(indices, self.center + np.column_stack((x, y)))
 
     def intersects(self, other: 'Circle') -> bool:
         '''
