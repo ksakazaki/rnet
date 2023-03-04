@@ -240,7 +240,7 @@ def dataset(layer_name: Union[str, None] = None):
         Layer name used when rendering features.
     '''
     def decorate(cls):
-        cls._ELEMENT_NAME = cls.__name__.rstrip('Data')
+        cls._ELEMENT_NAME = cls.__name__.replace('Data', '')
         if not layer_name:
             cls._LAYER_NAME = cls._ELEMENT_NAME.lower() + 's'
         else:
