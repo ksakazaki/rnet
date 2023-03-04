@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List
 from rnet.env import _QGIS_AVAILABLE, require_qgis
-from rnet.dataset import Field, Dataset, PointData, ConnectionData
+from rnet.dataset import Field, Dataset, PointData, ConnectionData, AreaData
 from rnet.taskmanager import create_and_queue
 
 __all__ = ['render']
@@ -108,6 +108,8 @@ def render(dataset: Dataset):
         geometry = 'point'
     elif isinstance(dataset, ConnectionData):
         geometry = 'linestring'
+    elif isinstance(dataset, AreaData):
+        geometry = 'polygon'
     temp_vl = _create_temp_layer(
         geometry, dataset._LAYER_NAME, dataset.crs, dataset.FIELDS)
     create_and_queue(RenderTask, dataset, temp_vl, 'Rendering features')
