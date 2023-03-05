@@ -207,6 +207,26 @@ class Arc:
         if self.start > self.end:
             self.end += 360
 
+    def contains(self, angles: np.ndarray) -> np.ndarray:
+        '''
+        Return boolean array that is True where angle is inside arc,
+        and False otherwise.
+
+        Parameters
+        ----------
+        angles : :class:`~numpy.ndarray`
+            Array of angles in degrees.
+
+        Returns
+        -------
+        :class:`~numpy.ndarray`
+            Boolean array that is True where angle is inside arc, and
+            False otherwise.
+        '''
+        return np.any((
+            (self.start < angles) & (angles < self.end),
+            (self.start < angles + 360) & (angles + 360 < self.end)), axis=0)
+
     def intersections(self, link_coords: np.ndarray
                       ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         '''
@@ -234,10 +254,7 @@ class Arc:
             Yield points of intersection between circle and links.
         '''
         indices, angles, points = self.circle.intersections(link_coords)
-        mask = np.any(np.stack((
-            (self.start < angles) & (angles < self.end),
-            (self.start < angles + 360) & (angles + 360 < self.end)
-        )), axis=0)
+        mask = self.contains(angles)
         indices = indices[mask]
         angles = angles[mask]
         points = points[mask]
