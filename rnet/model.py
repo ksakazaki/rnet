@@ -366,7 +366,8 @@ class Model:
 
 def model(*paths, crs: int = 4326, keep_vertices: bool = False,
           keep_links: bool = False, layer_name: str = 'lines',
-          exclude: List[str] = [], r: float = 1e-3, p: int = 2) -> Model:
+          exclude: List[str] = [], r: float = 1e-3, p: int = 2,
+          place_radius: float = 5e-3) -> Model:
     '''
     Construct a model from multiple data sources.
 
@@ -402,6 +403,9 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         elevations via IDW interpolation. The default is 0.001.
     p : int, optional
         Power setting for IDW interpolation. The default is 2.
+    place_radius : float, optional
+        Place radius used to form place groups. Units should correspond
+        to those of `crs`. The default is 0.005.
 
     Returns
     -------
@@ -435,9 +439,12 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
 
     # Gather place data
     if sorted['.csv']:
-        others['places'] = PlaceData.from_csvs(*sorted['.csv'], crs=4326)
+        places = PlaceData.from_csvs(*sorted['.csv'], crs=4326)
         if crs != 4326:
-            others['places'].transform(crs)
+            places.transform(crs)
+        areas = places.extract_areas(place_radius)
+        others['places'] = places
+        others['areas'] = areas
 
     # Calculate elevations
     if sorted['.osm'] and sorted['.tif']:
