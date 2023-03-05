@@ -32,7 +32,7 @@ class Circle:
         return np.array([self.x, self.y])
 
     def intersections(self, link_coords: np.ndarray
-                      ) -> Generator[Tuple[int, np.ndarray], None, None]:
+                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         '''
         Yield points of intersection between circle and links.
         Intersection points are ordered in counter-clockwise direction
@@ -45,9 +45,12 @@ class Circle:
 
         Returns
         -------
-        Generator[Tuple[int, :class:`~numpy.ndarray`], None, None]
-            Generator that yields 2-tuples containing link index and
-            intersection point.
+        indices : :class:`~numpy.ndarray`
+            Link indices.
+        angles : :class:`~numpy.ndarray`
+            Intersection angles in degrees.
+        points : :class:`~numpy.ndarray`
+            Two-dimensional intersection points.
 
         References
         ----------
@@ -86,12 +89,14 @@ class Circle:
         y = y[mask]
         indices = indices[mask]
 
-        angles = np.mod(np.arctan2(y, x), 2 * np.pi)
+        angles = np.degrees(np.mod(np.arctan2(y, x), 2 * np.pi))
         sorted_indices = np.argsort(angles)
+        indices = indices[sorted_indices]
+        angles = angles[sorted_indices]
         x = x[sorted_indices]
         y = y[sorted_indices]
-        indices = indices[sorted_indices]
-        return zip(indices, self.center + np.column_stack((x, y)))
+        points = self.center + np.column_stack((x, y))
+        return indices, angles, points
 
     def intersects(self, other: 'Circle') -> bool:
         '''
@@ -201,6 +206,42 @@ class Arc:
     def __post_init__(self):
         if self.start > self.end:
             self.end += 360
+
+    def intersections(self, link_coords: np.ndarray
+                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        '''
+        Yield points of intersection between arc and links.
+        Intersection points are ordered in counter-clockwise direction
+        along the arc.
+
+        Parameters
+        ----------
+        link_coords : :class:`~numpy.ndarray`
+            Two-dimensional link coordinates.
+
+        Returns
+        -------
+        indices : :class:`~numpy.ndarray`
+            Link indices.
+        angles : :class:`~numpy.ndarray`
+            Intersection angles in degrees.
+        points : :class:`~numpy.ndarray`
+            Two-dimensional intersection points.
+
+        See also
+        --------
+        :meth:`Circle.intersections`
+            Yield points of intersection between circle and links.
+        '''
+        indices, angles, points = self.circle.intersections(link_coords)
+        mask = np.any(np.stack((
+            (self.start < angles) & (angles < self.end),
+            (self.start < angles + 360) & (angles + 360 < self.end)
+        )), axis=0)
+        indices = indices[mask]
+        angles = angles[mask]
+        points = points[mask]
+        return indices, angles, points
 
     def points(self, step: float = 0.5):
         '''
