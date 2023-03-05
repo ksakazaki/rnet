@@ -545,6 +545,32 @@ class PlaceData(PointData):
         Field('group', 'uint32', False, default=-1)
     )
 
+    @classmethod
+    def from_csvs(cls, *paths: str, crs: int) -> 'PlaceData':
+        '''
+        Read place data from multiple CSV files.
+
+        Parameters
+        ----------
+        *paths : str
+            Paths to CSV files.
+        crs : int
+            EPSG code of CRS in which place coordinates are represented.
+
+        Returns
+        -------
+        :class:`PlaceData`
+            Place data.
+        '''
+        if len(paths) == 1:
+            return cls.from_csv(paths[0], crs)
+        df = pd.concat([pd.read_csv(path) for path in paths])
+        _, indices = np.unique(df[['x', 'y']].to_numpy(dtype=float),
+                               return_index=True)
+        df = df.iloc[indices]
+        df = df.reset_index(drop=True)
+        return cls(df, crs)
+
     def extract_areas(self, radius: float) -> AreaData:
         '''
         Return areas of place groups.
