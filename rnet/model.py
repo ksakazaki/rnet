@@ -176,6 +176,8 @@ class Model:
     **others : Dict[str, :class:`Dataset`]
         Other datasets.
 
+        .. versionadded:: 0.0.7
+
     See also
     --------
     :func:`model`
@@ -344,6 +346,9 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         If True, then nodes are indexed using a range starting at 0.
         Otherwise, nodes inherit IDs from the set of vertices.
         The default is True.
+
+        .. versionadded:: 0.0.7
+
     layer_name : str, optional
         Name of the layer from which OSM features are read. The default
         is 'lines'.
@@ -364,6 +369,8 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         radius. The area of a place group is formed by the union of
         circles centered at each group member with this radius. Units
         should match those of the given `crs`. The default is 0.
+
+        .. versionadded:: 0.0.7
 
     Returns
     -------
@@ -487,6 +494,8 @@ def model_places(*paths: str, crs: int, radius: float, links: LinkData,
                  start: int = 0) -> Tuple[PlaceData, AreaData, NodeData, LinkData]:
     '''
     Model places by forming place groups and extracting border nodes.
+
+    .. versionadded:: 0.0.7
 
     Parameters
     ----------
