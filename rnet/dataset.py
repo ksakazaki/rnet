@@ -545,7 +545,34 @@ class PlaceData(PointData):
         Field('group', 'uint32', False, default=-1)
     )
 
-    def areas(self, radius: float) -> AreaData:
+    def extract_areas(self, radius: float) -> AreaData:
+        '''
+        Return areas of place groups.
+
+        Parameters
+        ----------
+        radius : float
+            Places are connected if they are located within this radius.
+
+        Returns
+        -------
+        :class:`AreaData`
+            Area data.
+        '''
+        if not hasattr(self, '_radius') or self.radius != radius:
+            self.form_groups(radius)
+        coords = self.coords(2)
+        area_coords = []
+        for group in self.groups.values():
+            circles = [Circle(*coords[place_id], radius) for place_id in group]
+            points = []
+            for arc in outer_arcs(*circles):
+                points.append(arc.points()[:-1])
+            area_coords.append(np.vstack(points))
+        return AreaData(
+            pd.DataFrame(zip(area_coords), columns=['coords']), self.crs)
+
+    def form_groups(self, radius: float) -> None:
         '''
         Group places via connected component labeling. Places are
         connected if they are located within the given radius.
@@ -577,16 +604,19 @@ class PlaceData(PointData):
         self._df['group'] = group_ids
         self._radius = radius
 
-        # Compute group borders
-        group_borders = []
-        for group in groups:
-            circles = [Circle(*coords[place_id], radius) for place_id in group]
-            points = []
-            for arc in outer_arcs(*circles):
-                points.append(arc.points()[:-1])
-            group_borders.append(np.vstack(points))
-        return AreaData(
-            pd.DataFrame(zip(group_borders), columns=['coords']), self.crs)
+    @property
+    def groups(self) -> Dict[int, Set[int]]:
+        '''
+        Dictionary mapping group ID to set of member IDs.
+
+        Returns
+        -------
+        Dict[int, Set[int]]
+        '''
+        groups = defaultdict(set)
+        for place in self:
+            groups[place.group].add(place.Index)
+        return dict(groups)
 
     @property
     def radius(self) -> float:
