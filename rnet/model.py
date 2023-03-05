@@ -413,6 +413,7 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         others['border_nodes'] = border_nodes
         vertices = VertexData(
             pd.concat([vertices.df, border_nodes.df]), crs)
+        num_nodes = len(node_ids)
         node_ids = np.union1d(node_ids, list(border_nodes._df.index))
 
     # Extract nodes and edges
@@ -422,6 +423,10 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         nodes._df = nodes._df.reset_index(drop=True)
         _, inverse = np.unique(edges.pairs().flatten(), return_inverse=True)
         edges._df[['i', 'j']] = inverse.reshape(-1, 2)
+        if 'border_nodes' in others:
+            num_border_nodes = len(others['border_nodes'])
+            others['border_nodes']._df.index = \
+                pd.RangeIndex(num_nodes, num_nodes + num_border_nodes)
 
     # Calculate elevations
     if sorted['.osm'] and sorted['.tif']:
