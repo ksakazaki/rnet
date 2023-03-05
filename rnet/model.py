@@ -435,7 +435,7 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
 
     # Gather place data
     if sorted['.csv']:
-        others['places'] = PlaceData.from_csvs(*sorted['.csv'][0], crs=4326)
+        others['places'] = PlaceData.from_csvs(*sorted['.csv'], crs=4326)
         if crs != 4326:
             others['places'].transform(crs)
 
