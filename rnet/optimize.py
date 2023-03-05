@@ -1,7 +1,42 @@
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass
+from functools import wraps
 from heapq import heappush, heappop
+import time
 from typing import Dict, Tuple
 import numpy as np
-from rnet.utils import neighbors
+
+
+def run(func):
+    '''
+    Wrapper for algorithm calls.
+    '''
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(self, *args, **kwargs)
+        end_time = time.perf_counter()
+        self.EXEC_TIMES.append(end_time - start_time)
+        return result
+    return wrapper
+
+
+class Algorithm(ABC):
+
+    def __init__(self):
+        self.EXEC_TIMES = []
+
+    def __init_subclass__(cls) -> None:
+        cls.__call__ = run(cls.__call__)
+        return super().__init_subclass__()
+
+    @abstractmethod
+    def __call__(self):
+        pass
+
+    def clear(self):
+        self.EXEC_TIMES.clear()
 
 
 class Error(Exception):
@@ -22,52 +57,82 @@ class ConnectivityError(Exception):
         super().__init__(f'no path from {s} to {g}')
 
 
-class Dijkstra:
+@dataclass
+class Dijkstra(Algorithm):
+    '''
+    Implementation of Dijkstra's shortest path algorithm.
 
-    def __new__(cls, weights: Dict[Tuple[int, int], float]):
-        if not hasattr(cls, '_instance'):
-            cls._instance = super(Dijkstra, cls).__new__(cls)
-        return cls._instance
+    Parameters
+    ----------
+    weights : Dict[Tuple[int, int], float]
+        Dictionary mapping directed connection :math:`(i, j)` to
+        corresponding weight.
+    '''
 
-    def __init__(self, weights: Dict[Tuple[int, int], float]):
-        self._weights = weights
-        self._neighbors = neighbors(np.array(list(weights)), ordered=False)
-        self._queues = {}
+    weights: Dict[Tuple[int, int], float]
+
+    def __post_init__(self) -> None:
+        neighbors = defaultdict(set)
+        for (i, j) in self.weights.keys():
+            neighbors[i].add(j)
+        self.neighbors = dict(neighbors)
         self.visited = {}
         self.queried = {}
         self.origins = {}
+        self.queues = {}
+        super().__init__()
 
-    def __call__(self, s: int, g: int):
+    def __call__(self, start: int, goal: int) -> float:
+        '''
+        Algorithm call that returns length of shortest path from
+        `start` to `goal`.
+
+        Parameters
+        ----------
+        start, goal : int
+            Start and goal node IDs.
+
+        Returns
+        -------
+        float
+            Length of shortest path from `start` to `goal`.
+
+        Raises
+        ------
+        ConnectivityError
+            If no path exists from `start` to `goal`.
+        '''
         try:
-            return self.queried[s][g]
+            return self.queried[start][goal]
         except KeyError:
-            self._update(s, g)
-            return self.queried[s][g]
+            self._update(start, goal)
+            return self.queried[start][goal]
 
-    def _update(self, s: int, g: int):
-        visited = self.visited.setdefault(s, set())
-        queried = self.queried.setdefault(s, {})
-        origins = self.origins.setdefault(s, {})
-        queue = self._queues.setdefault(s, [])
+    def _update(self, start: int, goal: int) -> None:
+        visited = self.visited.setdefault(start, set())
+        queried = self.queried.setdefault(start, {})
+        origins = self.origins.setdefault(start, {})
+        queue = self.queues.setdefault(start, [])
         if len(visited) == 0:
-            heappush(queue, (0.0, s))
+            heappush(queue, (0.0, start))
         while queue:
-            c, n = heappop(queue)
-            if n == g:
-                heappush(queue, (c, n))
+            cost_to_node, node = heappop(queue)
+            if node == goal:
+                heappush(queue, (cost_to_node, node))
                 break
-            for m in self.neighbors[n].difference(visited):
-                d = c + self._weights[(n, m)]
-                if d < queried.get(m, np.inf):
-                    queried[m] = d
-                    origins[m] = n
-                    heappush(queue, (d, m))
-            visited.add(n)
+            for neighbor in self.neighbors[node].difference(visited):
+                dist = cost_to_node + self.weights[(node, neighbor)]
+                if dist < queried.get(neighbor, np.inf):
+                    queried[neighbor] = dist
+                    origins[neighbor] = node
+                    heappush(queue, (dist, neighbor))
+            visited.add(node)
         else:
-            raise ConnectivityError(s, g)
+            raise ConnectivityError(start, goal)
 
-    def clear(self):
+    def clear(self) -> None:
         self.visited.clear()
         self.queried.clear()
         self.origins.clear()
         self.queues.clear()
+        super().clear()
