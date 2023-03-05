@@ -322,7 +322,7 @@
 <h1>rnet.read_osm<a class="headerlink" href="#rnet-read-osm" title="Permalink to this headline">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="rnet.read_osm">
-<span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">read_osm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4326</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.read_osm" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">read_osm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4326</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.read_osm" title="Permalink to this definition">#</a></dt>
 <dd><p>Read a single OSM file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
@@ -333,25 +333,13 @@
 represented in EPSG:4326. The default is 4326. If another EPSG code is
 given, then point coordinates are transformed.</p>
 </dd>
-<dt><strong>return_vertices</strong><span class="classifier">bool, optional</span></dt><dd><p>If True, also return vertex data. Vertices are two-dimensional points
-used to define the geometry of each road. The default is False.</p>
-</dd>
-<dt><strong>return_links</strong><span class="classifier">bool, optional</span></dt><dd><p>If True, also return link data. Links are line segments defined by
-unordered pairs of vertices. The default is False.</p>
-</dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl>
-<dt><strong>nodes</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">NodeData</span></code></span></dt><dd><p>Nodes extracted from the OSM files.</p>
+<dt><strong>vertices</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">VertexData</span></code></span></dt><dd><p>Vertices extracted from the OSM files.</p>
 </dd>
-<dt><strong>edges</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">EdgeData</span></code></span></dt><dd><p>Directed edges extracted from the OSM files.</p>
-</dd>
-<dt><strong>vertices</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">VertexData</span></code>, optional</span></dt><dd><p>Vertices extracted from the OSM files. Only provided if
-<cite>return_vertices</cite> is True.</p>
-</dd>
-<dt><strong>links</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinkData</span></code>, optional</span></dt><dd><p>Undirected links extracted from the OSM files. Only provided if
-<cite>return_links</cite> is True.</p>
+<dt><strong>links</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinkData</span></code></span></dt><dd><p>Undirected links extracted from the OSM files.</p>
 </dd>
 </dl>
 </dd>

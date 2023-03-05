@@ -323,7 +323,7 @@
 <h1>The Model Class<a class="headerlink" href="#the-model-class" title="Permalink to this headline">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="rnet.Model">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.Model" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">others</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.Model" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Class representing an RNet model.</p>
 <dl class="field-list">
@@ -333,9 +333,10 @@
 </dd>
 <dt><strong>edges</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">EdgeData</span></code></span></dt><dd><p>Edge data.</p>
 </dd>
-<dt><strong>vertices</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">VertexData</span></code> or None, optional</span></dt><dd><p>Vertex data.</p>
-</dd>
-<dt><strong>links</strong><span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinkData</span></code> or None, optional</span></dt><dd><p>Link data.</p>
+<dt><strong>**others</strong><span class="classifier">Dict[str, <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>]</span></dt><dd><p>Other datasets.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.0.7.</span></p>
+</div>
 </dd>
 </dl>
 </dd>

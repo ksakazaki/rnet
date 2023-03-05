@@ -322,7 +322,7 @@
 <h1>rnet.model<a class="headerlink" href="#rnet-model" title="Permalink to this headline">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="rnet.model">
-<span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4326</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.model" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">rnet.</span></span><span class="sig-name descname"><span class="pre">model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4326</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_vertices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_links</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reindex_nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">place_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rnet.model" title="Permalink to this definition">#</a></dt>
 <dd><p>Construct a model from multiple data sources.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
@@ -333,6 +333,7 @@ file types are supported:</p>
 <div><ul class="simple">
 <li><p>OSM files containing street map data</p></li>
 <li><p>TIF files containing elevation data</p></li>
+<li><p>CSV files containing place data</p></li>
 </ul>
 </div></blockquote>
 </dd>
@@ -346,9 +347,16 @@ file types are supported:</p>
 </dl>
 </dd>
 <dt class="field-odd">Other Parameters</dt>
-<dd class="field-odd"><dl class="simple">
+<dd class="field-odd"><dl>
 <dt><strong>keep_vertices, keep_links</strong><span class="classifier">bool, optional</span></dt><dd><p>If True, then the sets of vertices and links are retained in the
 model. The defaults are False.</p>
+</dd>
+<dt><strong>reindex_nodes</strong><span class="classifier">bool, optional</span></dt><dd><p>If True, then nodes are indexed using a range starting at 0.
+Otherwise, nodes inherit IDs from the set of vertices.
+The default is True.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.0.7.</span></p>
+</div>
 </dd>
 <dt><strong>layer_name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the layer from which OSM features are read. The default
 is ‘lines’.</p>
@@ -363,6 +371,15 @@ following tags are included: ‘living_street’, ‘residential’,
 elevations via IDW interpolation. The default is 0.001.</p>
 </dd>
 <dt><strong>p</strong><span class="classifier">int, optional</span></dt><dd><p>Power setting for IDW interpolation. The default is 2.</p>
+</dd>
+<dt><strong>place_radius</strong><span class="classifier">float, optional</span></dt><dd><p>If given, this radius is used to form place groups and create
+areas. Places form a group if they are located within this
+radius. The area of a place group is formed by the union of
+circles centered at each group member with this radius. Units
+should match those of the given <cite>crs</cite>. The default is 0.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.0.7.</span></p>
+</div>
 </dd>
 </dl>
 </dd>
