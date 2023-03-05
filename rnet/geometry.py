@@ -56,22 +56,22 @@ class Circle:
         ----------
         https://mathworld.wolfram.com/Circle-LineIntersection.html
         '''
-        dx = np.diff(link_coords[:, :, 0], axis=1).flatten()
-        dy = np.diff(link_coords[:, :, 1], axis=1).flatten()
+        coords = link_coords - self.center
+        dx = np.diff(coords[:, :, 0], axis=1).flatten()
+        dy = np.diff(coords[:, :, 1], axis=1).flatten()
         dr_sq = dx ** 2 + dy ** 2
-        D = link_coords[:, 0, 0] * link_coords[:, 1, 1] - \
-            link_coords[:, 1, 0] * link_coords[:, 0, 1]
+        D = coords[:, 0, 0] * coords[:, 1, 1] - \
+            coords[:, 1, 0] * coords[:, 0, 1]
 
         discriminant = self.r ** 2 * dr_sq - D ** 2
-        discriminant_sqrt = np.sqrt(discriminant)
         mask = discriminant > 0
-        indices = np.flatnonzero(mask)
-
+        coords = coords[mask]
         dx = dx[mask]
         dy = dy[mask]
         dr_sq = dr_sq[mask]
         D = D[mask]
-        discriminant_sqrt = discriminant_sqrt[mask]
+        discriminant_sqrt = np.sqrt(discriminant[mask])
+        indices = np.flatnonzero(mask)
 
         x = np.hstack((
             D * dy + np.sign(dy) * dx * discriminant_sqrt,
@@ -83,7 +83,8 @@ class Circle:
         )) / np.hstack((dr_sq, dr_sq))
         indices = np.hstack((indices, indices))
 
-        scale_factors = (x / np.hstack((dx, dx)))
+        scale_factors = (x - np.hstack((coords[:, 0, 0], coords[:, 0, 0]))) \
+            / np.hstack((dx, dx))
         mask = (0 < scale_factors) & (scale_factors < 1)
         x = x[mask]
         y = y[mask]
