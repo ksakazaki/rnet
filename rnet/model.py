@@ -121,7 +121,7 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
         inv = inv[length:]
     links = LinkData(
         pd.DataFrame(chain.from_iterable(links), columns=['i', 'j', 'tag']),
-        directed=False)
+        crs, directed=False)
 
     # Extract nodes
     nodes_ = np.sort(
