@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Generator, List, Tuple
+from typing import List, Tuple
 import numpy as np
 
 
