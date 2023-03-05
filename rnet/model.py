@@ -1,13 +1,15 @@
 from collections import Counter, defaultdict
-from itertools import chain
+from itertools import chain, count
 import pickle
-from typing import List
+from typing import List, Set, Tuple
 import os
 import numpy as np
 import pandas as pd
 from osgeo import ogr
-from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData, PlaceData
-from rnet.geometry import polyline_length
+from scipy.spatial import cKDTree
+from rnet.algorithms import ccl
+from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData, PlaceData, AreaData
+from rnet.geometry import Circle, outer_arcs, polyline_length
 
 
 __all__ = ['Model', 'model', 'read_osm', 'read_osms', 'simplify']
@@ -33,8 +35,7 @@ _OSM_HIERARCHY = {
 _OSM_TAGS = set(_OSM_HIERARCHY)
 
 
-def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
-              return_links: bool = False, layer_name: str = 'lines',
+def read_osms(*paths: str, crs: int = 4326, layer_name: str = 'lines',
               exclude: List[str] = []):
     '''
     Read multiple OSM files.
@@ -47,12 +48,6 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
         EPSG code of desired CRS for point coordinates. OSM features are
         represented in EPSG:4326. The default is 4326. If another EPSG code is
         given, then point coordinates are transformed.
-    return_vertices : bool, optional
-        If True, also return vertex data. Vertices are two-dimensional points
-        used to define the geometry of each road. The default is False.
-    return_links : bool, optional
-        If True, also return link data. Links are line segments defined by
-        unordered pairs of vertices. The default is False.
 
     Other parameters
     ----------------
@@ -67,16 +62,10 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
 
     Returns
     -------
-    nodes : :class:`NodeData`
-        Nodes extracted from the OSM files.
-    edges : :class:`EdgeData`
-        Directed edges extracted from the OSM files.
-    vertices : :class:`VertexData`, optional
-        Vertices extracted from the OSM files. Only provided if
-        `return_vertices` is True.
-    links : :class:`LinkData`, optional
-        Undirected links extracted from the OSM files. Only provided if
-        `return_links` is True.
+    vertices : :class:`VertexData`
+        Vertices extracted from the OSM files.
+    links : :class:`LinkData`
+        Undirected links extracted from the OSM files.
 
     See also
     --------
@@ -122,39 +111,15 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
     links = LinkData(
         pd.DataFrame(chain.from_iterable(links), columns=['i', 'j', 'tag']),
         crs, directed=False)
+    coords = vertices.coords(2)[links.pairs().flatten()].reshape(-1, 2, 2)
+    links._df['coords'] = list(coords)
+    links._df['length'] = list(map(polyline_length, coords))
+    links._crs = crs
 
-    # Extract nodes
-    nodes_ = np.sort(
-        [k for k, v in Counter(
-            list(links.pairs().flatten())).items() if v != 2]
-    )
-    nodes = NodeData(vertices._df.iloc[nodes_], crs)
-
-    # Extract edges
-    edges = links.edges(vertices, set(nodes_))
-
-    # Re-index nodes
-    nodes._df = nodes._df.reset_index(drop=True)
-    _, inverse = np.unique(edges.pairs().flatten(), return_inverse=True)
-    edges._df[['i', 'j']] = inverse.reshape(-1, 2)
-
-    # Return
-    out = [nodes, edges]
-    if return_vertices:
-        out.append(vertices)
-    if return_links:
-        coords = vertices.coords(2)[links.pairs().flatten()].reshape(-1, 2, 2)
-        links._df['coords'] = list(coords)
-        links._df['length'] = list(map(polyline_length, coords))
-        links._crs = crs
-        out.append(links)
-    for dataset in out:
-        dataset.reset_dtypes()
-    return tuple(out)
+    return vertices, links
 
 
-def read_osm(path: str, *, crs: int = 4326, return_vertices: bool = False,
-             return_links: bool = False, layer_name: str = 'lines',
+def read_osm(path: str, *, crs: int = 4326, layer_name: str = 'lines',
              exclude: List[str] = []):
     '''
     Read a single OSM file.
@@ -167,12 +132,6 @@ def read_osm(path: str, *, crs: int = 4326, return_vertices: bool = False,
         EPSG code of desired CRS for point coordinates. OSM features are
         represented in EPSG:4326. The default is 4326. If another EPSG code is
         given, then point coordinates are transformed.
-    return_vertices : bool, optional
-        If True, also return vertex data. Vertices are two-dimensional points
-        used to define the geometry of each road. The default is False.
-    return_links : bool, optional
-        If True, also return link data. Links are line segments defined by
-        unordered pairs of vertices. The default is False.
 
     Other parameters
     ----------------
@@ -187,16 +146,10 @@ def read_osm(path: str, *, crs: int = 4326, return_vertices: bool = False,
 
     Returns
     -------
-    nodes : :class:`NodeData`
-        Nodes extracted from the OSM files.
-    edges : :class:`EdgeData`
-        Directed edges extracted from the OSM files.
-    vertices : :class:`VertexData`, optional
-        Vertices extracted from the OSM files. Only provided if
-        `return_vertices` is True.
-    links : :class:`LinkData`, optional
-        Undirected links extracted from the OSM files. Only provided if
-        `return_links` is True.
+    vertices : :class:`VertexData`
+        Vertices extracted from the OSM files.
+    links : :class:`LinkData`
+        Undirected links extracted from the OSM files.
 
     See also
     --------
@@ -207,9 +160,7 @@ def read_osm(path: str, *, crs: int = 4326, return_vertices: bool = False,
     ----------
     https://wiki.openstreetmap.org/wiki/Key:highway
     '''
-    return read_osms(path, crs=crs, return_vertices=return_vertices,
-                     return_links=return_links, layer_name=layer_name,
-                     exclude=exclude)
+    return read_osms(path, crs=crs, layer_name=layer_name, exclude=exclude)
 
 
 class Model:
@@ -365,9 +316,9 @@ class Model:
 
 
 def model(*paths, crs: int = 4326, keep_vertices: bool = False,
-          keep_links: bool = False, layer_name: str = 'lines',
-          exclude: List[str] = [], r: float = 1e-3, p: int = 2,
-          place_radius: float = 5e-3) -> Model:
+          keep_links: bool = False, reindex_nodes: bool = True,
+          layer_name: str = 'lines', exclude: List[str] = [],
+          r: float = 1e-3, p: int = 2, place_radius: float = 0) -> Model:
     '''
     Construct a model from multiple data sources.
 
@@ -389,6 +340,10 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     keep_vertices, keep_links : bool, optional
         If True, then the sets of vertices and links are retained in the
         model. The defaults are False.
+    reindex_nodes : bool, optional
+        If True, then nodes are indexed using a range starting at 0.
+        Otherwise, nodes inherit IDs from the set of vertices.
+        The default is True.
     layer_name : str, optional
         Name of the layer from which OSM features are read. The default
         is 'lines'.
@@ -404,8 +359,11 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     p : int, optional
         Power setting for IDW interpolation. The default is 2.
     place_radius : float, optional
-        Place radius used to form place groups. Units should correspond
-        to those of `crs`. The default is 0.005.
+        If given, this radius is used to form place groups and create
+        areas. Places form a group if they are located within this
+        radius. The area of a place group is formed by the union of
+        circles centered at each group member with this radius. Units
+        should match those of the given `crs`. The default is 0.
 
     Returns
     -------
@@ -424,27 +382,39 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     for path in unpacked:
         sorted[os.path.splitext(path)[1]].append(path)
 
+    # Dictionary for storing datasets
     others = {}
 
-    # Gather map data
+    # Gather map data and extract map nodes
     if sorted['.osm']:
-        nodes, edges, vertices, links = read_osms(
-            *sorted['.osm'], crs=crs, layer_name=layer_name, exclude=exclude,
-            return_vertices=True, return_links=True)
+        vertices, links = read_osms(
+            *sorted['.osm'], crs=crs, layer_name=layer_name, exclude=exclude)
+        neighbor_counts = Counter(list(links.pairs().flatten()))
+        node_ids = np.sort([k for k, v in neighbor_counts.items() if v != 2])
     else:
-        nodes = None
-        edges = None
         vertices = None
         links = None
+        node_ids = []
 
     # Gather place data
     if sorted['.csv']:
-        places = PlaceData.from_csvs(*sorted['.csv'], crs=4326)
-        if crs != 4326:
-            places.transform(crs)
-        areas = places.extract_areas(place_radius)
+        places, areas, border_nodes, links = \
+            model_places(*sorted['.csv'], crs=crs, radius=place_radius,
+                         links=links, start=len(vertices))
         others['places'] = places
         others['areas'] = areas
+        others['border_nodes'] = border_nodes
+        vertices = VertexData(
+            pd.concat([vertices.df, border_nodes.df]), crs)
+        node_ids = np.union1d(node_ids, list(border_nodes._df.index))
+
+    # Extract nodes and edges
+    nodes = NodeData(vertices._df.iloc[node_ids], crs)
+    edges = extract_edges(links, vertices, set(node_ids))
+    if reindex_nodes:
+        nodes._df = nodes._df.reset_index(drop=True)
+        _, inverse = np.unique(edges.pairs().flatten(), return_inverse=True)
+        edges._df[['i', 'j']] = inverse.reshape(-1, 2)
 
     # Calculate elevations
     if sorted['.osm'] and sorted['.tif']:
@@ -460,6 +430,187 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     if keep_links:
         others['links'] = links
     return Model(nodes, edges, **others)
+
+
+def extract_edges(links: LinkData, vertices: VertexData, node_ids: Set[int]
+                  ) -> EdgeData:
+    '''
+    Extract directed edges from link data.
+
+    Parameters
+    ----------
+    links : :class:`LinkData`
+        Link data.
+    vertices : :class:`VertexData`
+        Vertex data that provides the coordinates of link endpoints.
+    node_ids : Set[int]
+        Set of node IDs. Edges begin and end at a node whose ID is in
+        this set. Node coordinates are taken from the set of vertices.
+
+    Returns
+    -------
+    :class:`EdgeData`
+        Directed edge data.
+    '''
+    actions = links.actions()
+    vseqs = []  # vertex sequences
+    lseqs = []  # link sequences
+    for i in node_ids:
+        for action, j in actions[i]:
+            vseqs.append([i, j])
+            lseqs.append([action])
+            while vseqs[-1][-1] not in node_ids:
+                actions_ = actions[vseqs[-1][-1]]
+                try:
+                    action_ = actions_[0]
+                    assert action_[0] != lseqs[-1][-1]
+                except AssertionError:
+                    action_ = actions_[1]
+                finally:
+                    vseqs[-1].append(action_[1])
+                    lseqs[-1].append(action_[0])
+    i = [vseq[0] for vseq in vseqs]
+    j = [vseq[-1] for vseq in vseqs]
+    tags = links._df['tag'].iloc[[lseq[0] for lseq in lseqs]]
+    vcoords = vertices.coords(2)[list(chain.from_iterable(vseqs))]
+    coords = []
+    for length in map(len, vseqs):
+        coords.append(vcoords[:length])
+        vcoords = vcoords[length:]
+    lengths = list(map(polyline_length, coords))
+    edges_df = pd.DataFrame(zip(i, j, tags, lengths, coords),
+                            columns=['i', 'j', 'tag', 'length', 'coords'])
+    return EdgeData(edges_df, links.crs, directed=True)
+
+
+def model_places(*paths: str, crs: int, radius: float, links: LinkData,
+                 start: int = 0) -> Tuple[PlaceData, AreaData, NodeData, LinkData]:
+    '''
+    Model places by forming place groups and extracting border nodes.
+
+    Parameters
+    ----------
+    *paths : str
+        Paths to CSV files containing place data.
+    crs : int
+        EPSG code of CRS in which place coordinates are represented.
+    radius : float or None
+        Place radius. Units should match those of the given `crs`.
+    links : :class:`LinkData`
+        Links used to find border nodes. Border nodes are points of
+        intersection between a link in this set and an outer arc of
+        a place group.
+    start : int, optional
+        Starting index for border nodes. The default is 0.
+
+    Returns
+    -------
+    places : :class:`PlaceData`
+        Place data.
+    areas : :class:`AreaData
+        Area data.
+    border_nodes : :class:`NodeData`
+        Border nodes.
+    links : :class:`LinkData`
+        Updated link data.
+    '''
+    # Read place data from files
+    places = PlaceData.from_csvs(*paths, crs=4326)
+    if crs != 4326:
+        places.transform(crs)
+
+    # Search for neighboring places
+    place_coords = places.coords(2)
+    tree = cKDTree(place_coords)
+    neighbors = defaultdict(set)
+    for (i, j) in tree.query_pairs(radius):
+        neighbors[i].add(j)
+        neighbors[j].add(i)
+    neighbors = dict(neighbors)
+    num_places = len(places)
+    for index in range(num_places):
+        if index not in neighbors:
+            neighbors[index] = set()
+
+    # Form place groups
+    groups = ccl(neighbors)
+    group_ids = [None] * num_places
+    for group_id, group_members in enumerate(groups, 1):
+        for member in group_members:
+            group_ids[member] = group_id
+    places._df['group'] = group_ids
+
+    # Find area coordinates
+    all_arcs = []
+    area_coords = []
+    for group in groups:
+        circles = [Circle(*place_coords[place_id], radius)
+                   for place_id in group]
+        arc_points = []
+        for arc in outer_arcs(*circles):
+            all_arcs.append(arc)
+            arc_points.append(arc.points()[:-1])
+        area_coords.append(np.vstack(arc_points))
+    areas = AreaData(pd.DataFrame(zip(area_coords), columns=['coords']), crs)
+
+    # Find border nodes
+    node_id = count(start)
+    link_coords = links.coords(2)
+    all_border_points = []
+    all_split_points = defaultdict(list)
+    for arc in all_arcs:
+        indices, _, border_points = arc.intersections(link_coords)
+        all_border_points.append(border_points)
+        for (link_id, point) in zip(indices, border_points):
+            all_split_points[link_id].append((next(node_id), point))
+    all_split_points = dict(all_split_points)
+    border_nodes = NodeData(
+        pd.DataFrame(np.vstack(all_border_points), columns=['x', 'y']), crs)
+    border_nodes._df.index += start
+
+    # Split links at border nodes
+    i = []
+    j = []
+    tags = []
+    coords = []
+    for link_id, split_points in all_split_points.items():
+        link = links._df.iloc[link_id]
+        if len(split_points) == 1:
+            node_id, node_coords = split_points[0]
+            i.extend([link.i, node_id])
+            j.extend([node_id, link.j])
+            tags.extend([link.tag] * 2)
+            coords.extend([
+                np.vstack((link.coords[0], node_coords)),
+                np.vstack((node_coords, link.coords[1]))
+            ])
+        else:
+            x1, x2 = link.coords[:, 0]
+            dx = x2 - x1
+            scale_factors = [(p[0] - x1) / dx for (_, p) in split_points]
+            sorted_split_points = [split_points[index]
+                                   for index in np.argsort(scale_factors)]
+            vseq = [link.i] \
+                + [split_point[0] for split_point in sorted_split_points] \
+                + [link.j]
+            coord_seq = np.vstack((
+                link.coords[0],
+                [split_point[1] for split_point in sorted_split_points],
+                link.coords[1]))
+            num_segments = len(vseq) - 1
+            i.extend(vseq[:-1])
+            j.extend(vseq[1:])
+            tags.extend([link.tag] * num_segments)
+            coords.extend([coord_seq[k:k+2] for k in range(num_segments)])
+    lengths = list(map(polyline_length, coords))
+    links = links._df.drop(list(all_split_points))
+    links = pd.concat([
+        links,
+        pd.DataFrame(zip(i, j, tags, lengths, coords),
+                     columns=['i', 'j', 'tag', 'length', 'coords'])])
+    links = links.reset_index(drop=True)
+    links = LinkData(links, crs, directed=False)
+    return places, areas, border_nodes, links
 
 
 def simplify(model: Model, *, xmin: float = None, ymin: float = None,

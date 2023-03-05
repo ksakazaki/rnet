@@ -2,7 +2,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
-from itertools import chain
 import sys
 from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
@@ -571,90 +570,6 @@ class PlaceData(PointData):
         df = df.reset_index(drop=True)
         return cls(df, crs)
 
-    def extract_areas(self, radius: float) -> AreaData:
-        '''
-        Return areas of place groups.
-
-        Parameters
-        ----------
-        radius : float
-            Places are connected if they are located within this radius.
-
-        Returns
-        -------
-        :class:`AreaData`
-            Area data.
-        '''
-        if not hasattr(self, '_radius') or self.radius != radius:
-            self.form_groups(radius)
-        coords = self.coords(2)
-        area_coords = []
-        for group in self.groups.values():
-            circles = [Circle(*coords[place_id], radius) for place_id in group]
-            points = []
-            for arc in outer_arcs(*circles):
-                points.append(arc.points()[:-1])
-            area_coords.append(np.vstack(points))
-        return AreaData(
-            pd.DataFrame(zip(area_coords), columns=['coords']), self.crs)
-
-    def form_groups(self, radius: float) -> None:
-        '''
-        Group places via connected component labeling. Places are
-        connected if they are located within the given radius.
-
-        Parameters
-        ----------
-        radius : float
-            Places are connected if they are located within this radius.
-        '''
-        # Search for neighbors
-        coords = self.coords(2)
-        tree = cKDTree(coords)
-        neighbors = defaultdict(set)
-        for (i, j) in tree.query_pairs(radius):
-            neighbors[i].add(j)
-            neighbors[j].add(i)
-        neighbors = dict(neighbors)
-        num_places = len(self)
-        for index in range(num_places):
-            if index not in neighbors:
-                neighbors[index] = set()
-
-        # Form groups
-        groups = ccl(neighbors)
-        group_ids = [None] * num_places
-        for group_id, group_members in enumerate(groups, 1):
-            for member in group_members:
-                group_ids[member] = group_id
-        self._df['group'] = group_ids
-        self._radius = radius
-
-    @property
-    def groups(self) -> Dict[int, Set[int]]:
-        '''
-        Dictionary mapping group ID to set of member IDs.
-
-        Returns
-        -------
-        Dict[int, Set[int]]
-        '''
-        groups = defaultdict(set)
-        for place in self:
-            groups[place.group].add(place.Index)
-        return dict(groups)
-
-    @property
-    def radius(self) -> float:
-        '''
-        Radius used for forming groups.
-
-        Returns
-        -------
-        float
-        '''
-        return self._radius
-
 
 @dataset()
 class AreaData(Dataset):
@@ -1038,55 +953,6 @@ class LinkData(ConnectionData):
                 return coords[:, :, :2]
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
-
-    def edges(self, vertices: VertexData, node_ids: Set[int]) -> EdgeData:
-        '''
-        Extract directed edges.
-
-        Parameters
-        ----------
-        vertices : :class:`VertexData`
-            Vertex data.
-        node_ids : Set[int]
-            Set of node IDs.
-
-        Returns
-        -------
-        :class:`EdgeData`
-            Edge data.
-        '''
-        actions = self.actions()
-        vseqs = []  # vertex sequences
-        lseqs = []  # link sequences
-        for i in node_ids:
-            for action, j in actions[i]:
-                vseqs.append([i, j])
-                lseqs.append([action])
-                while True:
-                    actions_ = actions[vseqs[-1][-1]]
-                    if len(actions_) == 2:
-                        try:
-                            action_ = actions_[0]
-                            assert action_[0] != lseqs[-1][-1]
-                        except AssertionError:
-                            action_ = actions_[1]
-                        finally:
-                            vseqs[-1].append(action_[1])
-                            lseqs[-1].append(action_[0])
-                    else:
-                        break
-        i = [vseq[0] for vseq in vseqs]
-        j = [vseq[-1] for vseq in vseqs]
-        tags = self._df['tag'].iloc[[lseq[0] for lseq in lseqs]]
-        vcoords = vertices.coords(2)[list(chain.from_iterable(vseqs))]
-        coords = []
-        for length in map(len, vseqs):
-            coords.append(vcoords[:length])
-            vcoords = vcoords[length:]
-        lengths = list(map(polyline_length, coords))
-        edges_df = pd.DataFrame(zip(i, j, tags, lengths, coords),
-                                columns=['i', 'j', 'tag', 'length', 'coords'])
-        return EdgeData(edges_df, self.crs, directed=True)
 
     def elevate(self, *paths: str, r: float = 1e-3, p: int = 2) -> None:
         '''
