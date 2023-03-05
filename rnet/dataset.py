@@ -6,11 +6,9 @@ import sys
 from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
-from scipy.spatial import cKDTree
-from rnet.algorithms import ccl
 from rnet.coordinates import transform_coords, idw_query, densify
 from rnet.env import _QGIS_AVAILABLE, require_qgis
-from rnet.geometry import Circle, outer_arcs, polyline_length
+from rnet.geometry import polyline_length
 
 if _QGIS_AVAILABLE:
     from qgis.core import (
