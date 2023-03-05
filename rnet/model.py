@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 from osgeo import ogr
-from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData
+from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData, PlaceData
 from rnet.geometry import polyline_length
 
 
@@ -222,10 +222,8 @@ class Model:
         Node data.
     edges : :class:`EdgeData`
         Edge data.
-    vertices : :class:`VertexData` or None, optional
-        Vertex data.
-    links : :class:`LinkData` or None, optional
-        Link data.
+    **others : Dict[str, :class:`Dataset`]
+        Other datasets.
 
     See also
     --------
@@ -235,14 +233,11 @@ class Model:
         Return simplified model.
     '''
 
-    def __init__(self, nodes: NodeData, edges: EdgeData,
-                 vertices: VertexData = None, links: LinkData = None):
+    def __init__(self, nodes: NodeData, edges: EdgeData, **others):
         self.nodes = nodes
         self.edges = edges
-        if isinstance(vertices, VertexData):
-            self.vertices = vertices
-        if isinstance(links, LinkData):
-            self.links = links
+        for name, dataset in others.items():
+            setattr(self, name, dataset)
 
     @property
     def crs(self) -> int:
@@ -383,6 +378,7 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
 
             * OSM files containing street map data
             * TIF files containing elevation data
+            * CSV files containing place data
 
     crs : int, optional
         EPSG code of model CRS. The default is 4326.
@@ -424,6 +420,8 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     for path in unpacked:
         sorted[os.path.splitext(path)[1]].append(path)
 
+    others = {}
+
     # Gather map data
     if sorted['.osm']:
         nodes, edges, vertices, links = read_osms(
@@ -435,6 +433,12 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         vertices = None
         links = None
 
+    # Gather place data
+    if sorted['.csv']:
+        others['places'] = PlaceData.from_csvs(*sorted['.csv'][0], crs=4326)
+        if crs != 4326:
+            others['places'].transform(crs)
+
     # Calculate elevations
     if sorted['.osm'] and sorted['.tif']:
         nodes.elevate(*sorted['.tif'], r=r, p=p)
@@ -444,11 +448,11 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
         if keep_links:
             links.elevate(*sorted['.tif'], r=r, p=p)
 
-    if not keep_vertices:
-        vertices = None
-    if not keep_links:
-        links = None
-    return Model(nodes, edges, vertices, links)
+    if keep_vertices:
+        others['vertices'] = vertices
+    if keep_links:
+        others['links'] = links
+    return Model(nodes, edges, **others)
 
 
 def simplify(model: Model, *, xmin: float = None, ymin: float = None,
