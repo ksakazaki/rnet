@@ -131,40 +131,7 @@ def read_osms(*paths: str, crs: int = 4326, return_vertices: bool = False,
     nodes = NodeData(vertices._df.iloc[nodes_], crs)
 
     # Extract edges
-    nodes_ = set(nodes_)
-    actions = links.actions()
-    vseqs = []  # vertex sequences
-    lseqs = []  # link sequences
-    for i in nodes_:
-        for action, j in actions[i]:
-            vseqs.append([i, j])
-            lseqs.append([action])
-            while True:
-                actions_ = actions[vseqs[-1][-1]]
-                if len(actions_) == 2:
-                    try:
-                        action_ = actions_[0]
-                        assert action_[0] != lseqs[-1][-1]
-                    except AssertionError:
-                        action_ = actions_[1]
-                    finally:
-                        vseqs[-1].append(action_[1])
-                        lseqs[-1].append(action_[0])
-                else:
-                    break
-    i = [vseq[0] for vseq in vseqs]
-    j = [vseq[-1] for vseq in vseqs]
-    tags = links._df['tag'].iloc[[lseq[0] for lseq in lseqs]]
-    vcoords = vertices.coords(2)[list(chain.from_iterable(vseqs))]
-    coords = []
-    for length in map(len, vseqs):
-        coords.append(vcoords[:length])
-        vcoords = vcoords[length:]
-    lengths = list(map(polyline_length, coords))
-    edges = EdgeData(
-        pd.DataFrame(zip(i, j, tags, lengths, coords),
-                     columns=['i', 'j', 'tag', 'length', 'coords']),
-        crs, directed=True)
+    edges = links.edges(vertices, set(nodes_))
 
     # Re-index nodes
     nodes._df = nodes._df.reset_index(drop=True)

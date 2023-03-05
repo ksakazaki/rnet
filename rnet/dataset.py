@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from functools import partial
+from itertools import chain
 import sys
 from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
@@ -981,6 +982,55 @@ class LinkData(ConnectionData):
                 return coords[:, :, :2]
             raise DimensionError(2, 3)
         raise DimensionError(0, dims)
+
+    def edges(self, vertices: VertexData, node_ids: Set[int]) -> EdgeData:
+        '''
+        Extract directed edges.
+
+        Parameters
+        ----------
+        vertices : :class:`VertexData`
+            Vertex data.
+        node_ids : Set[int]
+            Set of node IDs.
+
+        Returns
+        -------
+        :class:`EdgeData`
+            Edge data.
+        '''
+        actions = self.actions()
+        vseqs = []  # vertex sequences
+        lseqs = []  # link sequences
+        for i in node_ids:
+            for action, j in actions[i]:
+                vseqs.append([i, j])
+                lseqs.append([action])
+                while True:
+                    actions_ = actions[vseqs[-1][-1]]
+                    if len(actions_) == 2:
+                        try:
+                            action_ = actions_[0]
+                            assert action_[0] != lseqs[-1][-1]
+                        except AssertionError:
+                            action_ = actions_[1]
+                        finally:
+                            vseqs[-1].append(action_[1])
+                            lseqs[-1].append(action_[0])
+                    else:
+                        break
+        i = [vseq[0] for vseq in vseqs]
+        j = [vseq[-1] for vseq in vseqs]
+        tags = self._df['tag'].iloc[[lseq[0] for lseq in lseqs]]
+        vcoords = vertices.coords(2)[list(chain.from_iterable(vseqs))]
+        coords = []
+        for length in map(len, vseqs):
+            coords.append(vcoords[:length])
+            vcoords = vcoords[length:]
+        lengths = list(map(polyline_length, coords))
+        edges_df = pd.DataFrame(zip(i, j, tags, lengths, coords),
+                                columns=['i', 'j', 'tag', 'length', 'coords'])
+        return EdgeData(edges_df, self.crs, directed=True)
 
     def elevate(self, *paths: str, r: float = 1e-3, p: int = 2) -> None:
         '''
