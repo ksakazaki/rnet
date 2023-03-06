@@ -103,9 +103,10 @@ class Dijkstra(Algorithm):
             If no path exists from `start` to `goal`.
         '''
         try:
-            return self.queried[start][goal]
-        except KeyError:
+            assert goal in self.visited[start]
+        except (AssertionError, KeyError):
             self._update(start, goal)
+        finally:
             return self.queried[start][goal]
 
     def _update(self, start: int, goal: int) -> None:
