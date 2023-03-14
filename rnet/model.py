@@ -8,7 +8,8 @@ import pandas as pd
 from osgeo import ogr
 from scipy.spatial import cKDTree
 from rnet.algorithms import ccl
-from rnet.dataset import Dataset, VertexData, LinkData, NodeData, EdgeData, PlaceData, AreaData
+from rnet.dataset import (Dataset, VertexData, LinkData, NodeData, EdgeData,
+                          PlaceData, AreaData, BorderNodeData)
 from rnet.geometry import Circle, outer_arcs, polyline_length
 
 
@@ -407,14 +408,14 @@ def model(*paths, crs: int = 4326, keep_vertices: bool = False,
     if sorted['.csv']:
         places, areas, border_nodes, links = \
             model_places(*sorted['.csv'], crs=crs, radius=place_radius,
-                         links=links, start=len(vertices))
+                         vertices=vertices, links=links)
         others['places'] = places
         others['areas'] = areas
         others['border_nodes'] = border_nodes
         vertices = VertexData(
             pd.concat([vertices.df, border_nodes.df]), crs)
         num_nodes = len(node_ids)
-        node_ids = np.union1d(node_ids, list(border_nodes._df.index))
+        node_ids = np.union1d(node_ids, border_nodes._df.index.tolist())
 
     # Extract nodes and edges
     nodes = NodeData(vertices._df.iloc[node_ids], crs)
@@ -495,8 +496,8 @@ def extract_edges(links: LinkData, vertices: VertexData, node_ids: Set[int]
     return EdgeData(edges_df, links.crs, directed=True)
 
 
-def model_places(*paths: str, crs: int, radius: float, links: LinkData,
-                 start: int = 0) -> Tuple[PlaceData, AreaData, NodeData, LinkData]:
+def model_places(*paths: str, crs: int, radius: float, vertices: VertexData,
+                 links: LinkData) -> Tuple[PlaceData, AreaData, NodeData, LinkData]:
     '''
     Model places by forming place groups and extracting border nodes.
 
@@ -510,12 +511,13 @@ def model_places(*paths: str, crs: int, radius: float, links: LinkData,
         EPSG code of CRS in which place coordinates are represented.
     radius : float or None
         Place radius. Units should match those of the given `crs`.
+    vertices : :class:`VertexData`
+        Vertex data. Vertices in this dataset that are located within
+        the given `radius` of any group member are called area vertices.
     links : :class:`LinkData`
         Links used to find border nodes. Border nodes are points of
         intersection between a link in this set and an outer arc of
         a place group.
-    start : int, optional
-        Starting index for border nodes. The default is 0.
 
     Returns
     -------
@@ -557,30 +559,33 @@ def model_places(*paths: str, crs: int, radius: float, links: LinkData,
     # Find area coordinates
     all_arcs = []
     area_coords = []
-    for group in groups:
+    for group_id, group_members in enumerate(groups, 1):
         circles = [Circle(*place_coords[place_id], radius)
-                   for place_id in group]
+                   for place_id in group_members]
         arc_points = []
         for arc in outer_arcs(*circles):
-            all_arcs.append(arc)
+            all_arcs.append((group_id, arc))
             arc_points.append(arc.points()[:-1])
         area_coords.append(np.vstack(arc_points))
     areas = AreaData(pd.DataFrame(zip(area_coords), columns=['coords']), crs)
 
     # Find border nodes
-    node_id = count(start)
+    node_id = count(len(vertices))
     link_coords = links.coords(2)
     all_border_points = []
+    border_node_group = []
     all_split_points = defaultdict(list)
-    for arc in all_arcs:
+    for (group_id, arc) in all_arcs:
         indices, _, border_points = arc.intersections(link_coords)
         all_border_points.append(border_points)
+        border_node_group.extend([group_id] * len(border_points))
         for (link_id, point) in zip(indices, border_points):
             all_split_points[link_id].append((next(node_id), point))
     all_split_points = dict(all_split_points)
-    border_nodes = NodeData(
-        pd.DataFrame(np.vstack(all_border_points), columns=['x', 'y']), crs)
-    border_nodes._df.index += start
+    border_nodes = BorderNodeData(
+        pd.DataFrame(np.column_stack((np.vstack(all_border_points), border_node_group)),
+                     columns=['x', 'y', 'group']), crs)
+    border_nodes._df.index += len(vertices)
 
     # Split links at border nodes
     i = []

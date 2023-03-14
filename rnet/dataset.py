@@ -522,6 +522,29 @@ class NodeData(PointData):
 
 
 @dataset()
+class BorderNodeData(PointData):
+    '''
+    Class representing border node data.
+
+    .. versionadded:: 0.0.7
+
+    Parameters
+    ----------
+    df : :class:`pandas.DataFrame`
+        Data frame.
+    crs : int
+        EPSG code of CRS in which node coordinates are represented.
+    '''
+
+    FIELDS = (
+        Field('x', 'float64', True, False),
+        Field('y', 'float64', True, False),
+        Field('z', 'float64', False),
+        Field('group', 'uint16', False)
+    )
+
+
+@dataset()
 class PlaceData(PointData):
     '''
     Class for representing place data.
