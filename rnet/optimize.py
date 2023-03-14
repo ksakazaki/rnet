@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from dataclasses import dataclass
 from functools import wraps
 from heapq import heappush, heappop
 import time
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple, Union
 import numpy as np
 
 
@@ -64,25 +63,23 @@ class Dijkstra(Algorithm):
 
     Parameters
     ----------
-    weights : Dict[Tuple[int, int], float]
-        Dictionary mapping directed connection :math:`(i, j)` to
-        corresponding weight.
+    weights : Dict[int, Dict[int, float]]
+        Dictionary whose keys are source nodes and values are a
+        mapping from destination nodes to corresponding weights.
     '''
 
-    weights: Dict[Tuple[int, int], float]
+    weights: Dict[int, Dict[int, float]]
 
     def __post_init__(self) -> None:
-        neighbors = defaultdict(set)
-        for (i, j) in self.weights.keys():
-            neighbors[i].add(j)
-        self.neighbors = dict(neighbors)
+        self.neighbors = {i: set(self.weights[i]) for i in self.weights.keys()}
         self.visited = {}
         self.queried = {}
         self.origins = {}
         self.queues = {}
         super().__init__()
 
-    def __call__(self, start: int, goal: int) -> float:
+    def __call__(self, start: int, goal: int, return_path: bool = False
+                 ) -> Union[float, Tuple[float, List[int]]]:
         '''
         Algorithm call that returns length of shortest path from
         `start` to `goal`.
@@ -91,11 +88,17 @@ class Dijkstra(Algorithm):
         ----------
         start, goal : int
             Start and goal node IDs.
+        return_path : bool, optional
+            If True, then the shortest path from `start` to `goal` is
+            also returned. The default is False.
 
         Returns
         -------
-        float
+        cost : float
             Length of shortest path from `start` to `goal`.
+        path : List[int], optional
+            Path from `start` to `goal`. Only provided if `return_path`
+            is True.
 
         Raises
         ------
@@ -107,7 +110,14 @@ class Dijkstra(Algorithm):
         except (AssertionError, KeyError):
             self._update(start, goal)
         finally:
-            return self.queried[start][goal]
+            if return_path:
+                origins = self.origins[start]
+                path = [goal]
+                while path[0] != start:
+                    path.insert(0, origins[path[0]])
+                return self.queried[start][goal], path
+            else:
+                return self.queried[start][goal]
 
     def _update(self, start: int, goal: int) -> None:
         visited = self.visited.setdefault(start, set())
@@ -122,7 +132,7 @@ class Dijkstra(Algorithm):
                 heappush(queue, (cost_to_node, node))
                 break
             for neighbor in self.neighbors[node].difference(visited):
-                dist = cost_to_node + self.weights[(node, neighbor)]
+                dist = cost_to_node + self.weights[node][neighbor]
                 if dist < queried.get(neighbor, np.inf):
                     queried[neighbor] = dist
                     origins[neighbor] = node
