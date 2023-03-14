@@ -1164,3 +1164,26 @@ class EdgeData(ConnectionData):
         self._df['coords'] = list(coords)
         self._df['length'] = list(map(polyline_length, coords))
         self._crs = dst
+
+    def weights(self) -> Dict[int, Dict[int, float]]:
+        '''
+        Return dictionary whose keys are source nodes and values are
+        a mapping from destination nodes to corresponding edge weights.
+
+        .. versionadded:: 0.0.7
+
+        Returns
+        -------
+        Dict[int, Dict[int, float]]
+        '''
+        weights = defaultdict(lambda: defaultdict(float))
+        if self.directed:
+            for edge in self:
+                weights[edge.i][edge.j] = edge.length
+        else:
+            for edge in self:
+                weights[edge.i][edge.j] = edge.length
+                weights[edge.j][edge.i] = edge.length
+        for i in weights.keys():
+            weights[i] = dict(weights[i])
+        return dict(weights)
