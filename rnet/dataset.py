@@ -543,6 +543,22 @@ class BorderNodeData(PointData):
         Field('group', 'uint16', False)
     )
 
+    def to_dict(self) -> Dict[int, List[int]]:
+        '''
+        Return dictionary mapping region ID to sorted list of border
+        nodes.
+
+        .. versionadded:: 0.0.7
+
+        Returns
+        -------
+        Dict[int, List[int]]
+        '''
+        border_nodes = defaultdict(list)
+        for node in self:
+            border_nodes[node.group].append(node.Index)
+        return dict(border_nodes)
+
 
 @dataset()
 class PlaceData(PointData):
