@@ -551,7 +551,7 @@ def model_places(*paths: str, crs: int, radius: float, vertices: VertexData,
     # Form place groups
     groups = ccl(neighbors)
     group_ids = [None] * num_places
-    for group_id, group_members in enumerate(groups, 1):
+    for group_id, group_members in enumerate(groups):
         for member in group_members:
             group_ids[member] = group_id
     places._df['group'] = group_ids
@@ -559,7 +559,7 @@ def model_places(*paths: str, crs: int, radius: float, vertices: VertexData,
     # Find area coordinates
     all_arcs = []
     area_coords = []
-    for group_id, group_members in enumerate(groups, 1):
+    for group_id, group_members in enumerate(groups):
         circles = [Circle(*place_coords[place_id], radius)
                    for place_id in group_members]
         arc_points = []
