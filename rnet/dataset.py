@@ -620,7 +620,7 @@ class PlaceData(PointData):
         '''
         groups = defaultdict(set)
         for place in self:
-            groups[place.group].add(place.group)
+            groups[place.group].add(place.Index)
         return dict(groups)
 
     @classmethod
