@@ -6,6 +6,7 @@ import sys
 from typing import Any, Dict, Iterable, Generator, List, NamedTuple, Set, Tuple, Union
 import numpy as np
 import pandas as pd
+from scipy.spatial import cKDTree
 from rnet.coordinates import transform_coords, idw_query, densify
 from rnet.env import _QGIS_AVAILABLE, require_qgis
 from rnet.geometry import polyline_length
@@ -580,6 +581,47 @@ class PlaceData(PointData):
         Field('z', 'float64', False),
         Field('group', 'uint32', False, default=-1)
     )
+
+    def area_nodes(self, nodes: NodeData, radius: float) -> Dict[int, Set[int]]:
+        '''
+        Return dictionary mapping region ID to set of area nodes.
+
+        .. versionadded:: 0.0.7
+
+        Parameters
+        ----------
+        nodes : :class:`NodeData`
+            Node data.
+        radius : float
+            Place radius. All points within this radius of a place are
+            added to the set of nodes of the corresponding place group.
+
+        Returns
+        -------
+        Dict[int, Set[int]]
+        '''
+        tree = cKDTree(nodes.coords(2))
+        neighbors = tree.query_ball_point(self.coords(2), radius)
+        area_nodes = defaultdict(set)
+        for group_id, group_members in self.groups().items():
+            for place_id in group_members:
+                area_nodes[group_id].update(neighbors[place_id])
+        return dict(area_nodes)
+
+    def groups(self) -> Dict[int, Set[int]]:
+        '''
+        Return dictionary mapping place ID to group ID.
+
+        .. versionadded:: 0.0.7
+
+        Returns
+        -------
+        Dict[int, Set[int]]
+        '''
+        groups = defaultdict(set)
+        for place in self:
+            groups[place.group].add(place.group)
+        return dict(groups)
 
     @classmethod
     def from_csvs(cls, *paths: str, crs: int) -> 'PlaceData':
