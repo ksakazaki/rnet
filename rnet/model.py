@@ -586,6 +586,7 @@ def model_places(*paths: str, crs: int, radius: float, vertices: VertexData,
         pd.DataFrame(np.column_stack((np.vstack(all_border_points), border_node_group)),
                      columns=['x', 'y', 'group']), crs)
     border_nodes._df.index += len(vertices)
+    border_nodes.reset_dtypes()
 
     # Split links at border nodes
     i = []
