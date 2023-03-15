@@ -1,7 +1,9 @@
 from __future__ import annotations
 from typing import List
+import numpy as np
 from rnet.env import _QGIS_AVAILABLE, require_qgis
 from rnet.dataset import Field, Dataset, PointData, ConnectionData, AreaData
+from rnet.model import Model
 from rnet.taskmanager import create_and_queue
 
 __all__ = ['render']
@@ -9,8 +11,11 @@ __all__ = ['render']
 if _QGIS_AVAILABLE:
     from PyQt5.QtCore import QVariant
     from qgis.core import (
+        QgsFeature,
         QgsFeatureSink,
         QgsField,
+        QgsGeometry,
+        QgsPointXY,
         QgsProject,
         QgsTask,
         QgsVectorLayer
@@ -114,3 +119,31 @@ def render(dataset: Dataset):
         geometry, dataset._LAYER_NAME, dataset.crs, dataset.FIELDS)
     create_and_queue(RenderTask, dataset, temp_vl, 'Rendering features')
     return temp_vl
+
+
+@require_qgis
+def render_path(model: Model, path: List[int]) -> None:
+    '''
+    Render a path in a temporary layer.
+
+    .. versionadded:: 0.0.7
+
+    Parameters
+    ----------
+    model : :class:`Model`
+        RNet model.
+    path : List[int]
+        Sequence of node IDs.
+    '''
+    path_coords = []
+    for (i, j) in zip(path[:-1], path[1:]):
+        edge = next(model.edges.get(i, j))
+        path_coords.append(edge.coords)
+    path_coords = np.vstack(path_coords)
+
+    feat = QgsFeature()
+    feat.setGeometry(QgsGeometry.fromPolylineXY(
+        [QgsPointXY(x, y) for (x, y) in path_coords]))
+    temp_vl = _create_temp_layer('linestring', 'path', model.edges.crs, [])
+    temp_vl.dataProvider().addFeatures([feat])
+    QgsProject.instance().addMapLayer(temp_vl)
