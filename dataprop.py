@@ -1,5 +1,7 @@
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
+from heapq import heappop, heappush
 from functools import cached_property
 import pickle
 from typing import Dict, Iterable, List, Set, Union
@@ -130,6 +132,185 @@ class DataPropagationProblemSetting:
 
 
 @dataclass
+class DataPropagationSolver(ABC):
+    '''
+    Base solver for the data propagation problem.
+
+    Parameters
+    ----------
+    weights : Dict[int, Dict[int, float]]
+        Dictionary whose keys are source nodes and values are a
+        mapping from destination nodes to corresponding weights.
+    border_nodes : Dict[int, List[int]]
+        Dictionary mapping region ID to list of node IDs that surround
+        that region.
+    area_nodes : Dict[int, Set[int]]
+        Dictionary mapping region ID to set of node IDs that are
+        contained within that region.
+
+    Attributes
+    ----------
+    area_weights : Dict[int, Dict[int, Dict[int, float]]]
+        ``area_weights[i][j][region_id]`` is the weight of edge
+        :math:`(i, j)` if it is contained in the region with the given
+        ID. Otherwise, the value is 0.
+    '''
+
+    weights: Dict[int, Dict[int, float]]
+    border_nodes: Dict[int, List[int]]
+    area_nodes: Dict[int, Set[int]]
+
+    def __post_init__(self) -> None:
+        self.area_weights = \
+            defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
+        for region_id in self.area_nodes.keys():
+            area_border_union = \
+                self.area_nodes[region_id].union(self.border_nodes[region_id])
+            for i in self.weights.keys():
+                for j, weight in self.weights[i].items():
+                    if i in area_border_union and j in area_border_union:
+                        self.area_weights[i][j][region_id] = weight
+        self.shortest_path = Dijkstra(self.weights)
+
+    @abstractmethod
+    def __call__(self):
+        pass
+
+
+@dataclass
+class DataPropagationBranchAndBound(DataPropagationSolver):
+    '''
+    Branch and bound solver for the data propagation problem.
+
+    Parameters
+    ----------
+    weights : Dict[int, Dict[int, float]]
+        Dictionary whose keys are source nodes and values are a
+        mapping from destination nodes to corresponding weights.
+    border_nodes : Dict[int, List[int]]
+        Dictionary mapping region ID to list of node IDs that surround
+        that region.
+    area_nodes : Dict[int, Set[int]]
+        Dictionary mapping region ID to set of node IDs that are
+        contained within that region.
+    node_coords : :class:`~numpy.ndarray`
+        Array of node coordinates.
+    '''
+
+    node_coords: np.ndarray
+
+    def __call__(self, problem_setting: DataPropagationProblemSetting
+                 ) -> List[int]:
+        '''
+        Algorithm call.
+
+        Parameters
+        ----------
+        problem_setting : :class:`DataPropagationProblemSetting`
+            Problem setting for the data propagation problem.
+
+        Returns
+        -------
+        path : List[int]
+            Best solution to the data propagation problem.
+        '''
+        self.problem_setting = problem_setting
+        self.goal_coords = self.node_coords[problem_setting.goal_node_id]
+
+        self.initialize()
+
+        while self.queue:
+            cost, route, order = heappop(self.queue)
+            if len(route) == problem_setting.num_destinations:
+                self.update(cost, route, order)
+            else:
+                self.branch(cost, route, order)
+
+    def initialize(self) -> None:
+        '''
+        Initialize queue with all possible first legs.
+        '''
+        self.best_cost = np.inf
+        self.best_route = None
+        self.best_order = None
+
+        start_node_id = self.problem_setting.start_node_id
+        destination_region_ids = self.problem_setting.destination_region_ids
+
+        self.queue = []
+        for region_id in destination_region_ids:
+            for node_id in self.border_nodes[region_id]:
+                cost = self.shortest_path(start_node_id, node_id)
+                heappush(self.queue, (cost, [node_id], [region_id]))
+
+    def heuristic(self, node_id: int) -> float:
+        '''
+        Return best possible cost from the current node to the goal node.
+
+        Parameters
+        ----------
+        node_id : int
+            Current node ID.
+
+        Returns
+        -------
+        float
+            Straight-line distance from the current node to the goal
+            node.
+        '''
+        return np.linalg.norm(self.node_coords[node_id] - self.goal_coords)
+
+    def branch(self, cost: float, route: List[int], order: List[int]) -> None:
+        '''
+        Given cost, route, and order, add to queue all possible
+        continuations that may have better cost.
+
+        Parameters
+        ----------
+        cost : float
+            Cost so far.
+        route : List[int]
+            List of waypoints.
+        order : List[int]
+            List of region IDs.
+        '''
+        remaining_region_ids = \
+            set(self.problem_setting.destination_region_ids).difference(order)
+        last_node_id = route[-1]
+        for region_id in remaining_region_ids:
+            new_order = order + [region_id]
+            for node_id in self.border_nodes[region_id]:
+                new_cost = cost + self.shortest_path(last_node_id, node_id)
+                if new_cost + self.heuristic(node_id) < self.best_cost:
+                    new_route = route + [node_id]
+                    heappush(self.queue, (new_cost, new_route, new_order))
+
+    def update(self, cost: float, route: List[int], order: List[int]) -> None:
+        '''
+        If this route and order gives rise to an improved solution, then
+        update the :attr:`best_cost`, :attr:`best_route`, and
+        :attr:`best_order` attributes.
+
+        Parameters
+        ----------
+        cost : float
+            Cost so far.
+        route : List[int]
+            List of waypoints.
+        order : List[int]
+            List of region IDs.
+        '''
+        final_cost = cost + \
+            self.shortest_path(route[-1], self.problem_setting.goal_node_id)
+        if final_cost < self.best_cost:
+            self.best_cost = final_cost
+            self.best_route = route
+            self.best_order = order
+            print(f'Improved solution: cost={final_cost:.4f},',
+                  f'route={route}, order={order}')
+
+
+@dataclass
 class DataPropagationGeneticAlgorithmParams:
     '''
     Parameters for the genetic algorithm.
@@ -168,7 +349,7 @@ class DataPropagationGeneticAlgorithmParams:
 
 
 @dataclass
-class DataPropagationGeneticAlgorithm:
+class DataPropagationGeneticAlgorithm(DataPropagationSolver):
     '''
     Genetic algorithm for the data propagation problem.
 
@@ -187,22 +368,7 @@ class DataPropagationGeneticAlgorithm:
         Parameters for the genetic algorithm.
     '''
 
-    weights: Dict[int, Dict[int, float]]
-    border_nodes: Dict[int, List[int]]
-    area_nodes: Dict[int, Set[int]]
     params: DataPropagationGeneticAlgorithmParams
-
-    def __post_init__(self) -> None:
-        self.area_weights = \
-            defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
-        for region_id in self.area_nodes.keys():
-            area_border_union = \
-                self.area_nodes[region_id].union(self.border_nodes[region_id])
-            for i in self.weights.keys():
-                for j, weight in self.weights[i].items():
-                    if i in area_border_union and j in area_border_union:
-                        self.area_weights[i][j][region_id] = weight
-        self.shortest_path = Dijkstra(self.weights)
 
     def __call__(self, problem_setting: DataPropagationProblemSetting,
                  rng_seed: int = None) -> None:
@@ -352,6 +518,9 @@ class DataPropagationGeneticAlgorithm:
         if best_chromosome.cost < self.best_cost:
             self.best_iteration = self.iter
             self.best_cost = best_chromosome.cost
+            print(f'Improved solution: cost={best_chromosome.cost:.4f},',
+                  f'route={best_chromosome.route},',
+                  f'order={best_chromosome.order}')
             return True
         return False
 
@@ -360,8 +529,18 @@ class DataPropagationGeneticAlgorithm:
             pickle.dump(self.populations, file)
 
 
-def main(model: Model, solver_params: DataPropagationGeneticAlgorithmParams,
-         problem_setting: DataPropagationProblemSetting, output_path: str):
+def run_bb(model: Model, problem_setting: DataPropagationProblemSetting):
+    global algorithm
+    algorithm = DataPropagationBranchAndBound(
+        model.edges.weights(),
+        model.border_nodes.to_dict(),
+        model.places.area_nodes(model.nodes, 500),
+        model.nodes.coords(2))
+    algorithm(problem_setting)
+
+
+def run_ga(model: Model, solver_params: DataPropagationGeneticAlgorithmParams,
+           problem_setting: DataPropagationProblemSetting, output_path: str):
     global algorithm
     algorithm = DataPropagationGeneticAlgorithm(
         model.edges.weights(),
@@ -380,6 +559,7 @@ if __name__ == '__main__':
     parser.add_argument('start_node_id', type=int)
     parser.add_argument('goal_node_id', type=int)
     parser.add_argument('destination_region_ids', nargs='*', type=int)
+    parser.add_argument('-bb', '--branch_and_bound', action='store_true')
     parser.add_argument('--min_propagation_time', type=int, default=60)
     parser.add_argument('--vehicle_speed', type=int, default=45)
     parser.add_argument('--population_size', type=int, default=100)
@@ -394,11 +574,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model = Model.from_pickle(args.model_path)
-    solver_params = DataPropagationGeneticAlgorithmParams(
-        args.population_size, args.crossover_rate, args.selection_size,
-        args.mutation_rate, args.regular_mutation_rate, args.neighborhood_size,
-        args.max_iterations, args.patience)
     problem_setting = DataPropagationProblemSetting(
         args.start_node_id, args.goal_node_id, args.destination_region_ids,
         args.min_propagation_time, args.vehicle_speed)
-    main(model, solver_params, problem_setting, args.output)
+
+    if args.branch_and_bound:
+        run_bb(model, problem_setting)
+
+    else:
+        solver_params = DataPropagationGeneticAlgorithmParams(
+            args.population_size, args.crossover_rate, args.selection_size,
+            args.mutation_rate, args.regular_mutation_rate,
+            args.neighborhood_size, args.max_iterations, args.patience)
+        run_ga(model, solver_params, problem_setting, args.output)
