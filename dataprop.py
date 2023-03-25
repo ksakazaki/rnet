@@ -7,7 +7,7 @@ import pickle
 from typing import Dict, Iterable, List, Set, Union
 import numpy as np
 from rnet.model import Model
-from rnet.optimize import Dijkstra
+from rnet.optimize import Dijkstra, ConnectivityError
 
 
 @dataclass
@@ -240,8 +240,11 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         self.queue = []
         for region_id in destination_region_ids:
             for node_id in self.border_nodes[region_id]:
-                cost = self.shortest_path(start_node_id, node_id)
-                heappush(self.queue, (cost, [node_id], [region_id]))
+                try:
+                    cost = self.shortest_path(start_node_id, node_id)
+                    heappush(self.queue, (cost, [node_id], [region_id]))
+                except ConnectivityError:
+                    continue
 
     def heuristic(self, node_id: int) -> float:
         '''
@@ -280,7 +283,10 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         for region_id in remaining_region_ids:
             new_order = order + [region_id]
             for node_id in self.border_nodes[region_id]:
-                new_cost = cost + self.shortest_path(last_node_id, node_id)
+                try:
+                    new_cost = cost + self.shortest_path(last_node_id, node_id)
+                except ConnectivityError:
+                    continue
                 if new_cost + self.heuristic(node_id) < self.best_cost:
                     new_route = route + [node_id]
                     heappush(self.queue, (new_cost, new_route, new_order))
@@ -300,8 +306,12 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         order : List[int]
             List of region IDs.
         '''
-        final_cost = cost + \
-            self.shortest_path(route[-1], self.problem_setting.goal_node_id)
+        try:
+            final_cost = cost + \
+                self.shortest_path(route[-1], self.problem_setting.goal_node_id
+                                   )
+        except ConnectivityError:
+            return
         if final_cost < self.best_cost:
             self.best_cost = final_cost
             self.best_route = route
@@ -435,15 +445,20 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             chromosome.path = [start_node_id]
             chromosome.propagation_times = np.zeros(num_destinations)
             for (start, goal) in zip(ordered_route[:-1], ordered_route[1:]):
-                cost, path = self.shortest_path(start, goal, True)
+                try:
+                    cost, path = self.shortest_path(start, goal, True)
+                except ConnectivityError:
+                    chromosome.is_feasible = False
+                    break
                 chromosome.cost += cost
                 chromosome.path += path[1:]
                 for (i, j) in zip(path[: -1], path[1:]):
                     chromosome.propagation_times += \
                         np.array([self.area_weights[i][j][region_id]
                                   for region_id in destination_region_ids])
-            chromosome.is_feasible = \
-                np.all(chromosome.propagation_times > min_propagation_time)
+            else:
+                chromosome.is_feasible = \
+                    np.all(chromosome.propagation_times > min_propagation_time)
 
     def crossover(self) -> None:
         '''
