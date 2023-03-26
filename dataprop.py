@@ -571,10 +571,11 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('model_path', help="path to pickled RNet model")
-    parser.add_argument('start_node_id', type=int)
-    parser.add_argument('goal_node_id', type=int)
+    parser.add_argument('start_node_id', nargs='?', type=int, default=-1)
+    parser.add_argument('goal_node_id', nargs='?', type=int, default=-1)
     parser.add_argument('destination_region_ids', nargs='*', type=int)
     parser.add_argument('-bb', '--branch_and_bound', action='store_true')
+    parser.add_argument('--num_destinations', type=int)
     parser.add_argument('--min_propagation_time', type=int, default=60)
     parser.add_argument('--vehicle_speed', type=int, default=45)
     parser.add_argument('--population_size', type=int, default=100)
@@ -589,9 +590,28 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model = Model.from_pickle(args.model_path)
+
+    start_node_id = args.start_node_id
+    if start_node_id == -1:
+        start_node_id = np.random.choice(len(model.nodes))
+
+    goal_node_id = args.goal_node_id
+    if goal_node_id == -1:
+        goal_node_id = np.random.choice(len(model.nodes))
+
+    destination_region_ids = args.destination_region_ids
+    if not destination_region_ids:
+        assert args.num_destinations, \
+            'either destination_region_ids or --num_destinations required'
+        destination_region_ids = np.random.choice(len(model.areas),
+                                                  args.num_destinations,
+                                                  replace=False).tolist()
+
     problem_setting = DataPropagationProblemSetting(
-        args.start_node_id, args.goal_node_id, args.destination_region_ids,
+        start_node_id, goal_node_id, destination_region_ids,
         args.min_propagation_time, args.vehicle_speed)
+
+    print(problem_setting)
 
     if args.branch_and_bound:
         run_bb(model, problem_setting)
