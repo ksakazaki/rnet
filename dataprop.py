@@ -591,9 +591,9 @@ if __name__ == '__main__':
     parser.add_argument('goal_node_id', nargs='?', type=int, default=-1)
     parser.add_argument('destination_region_ids', nargs='*', type=int)
     parser.add_argument('-bb', '--branch_and_bound', action='store_true')
-    parser.add_argument('--fifo', action='store_true',
+    parser.add_argument('-fifo', '--breadth_first', action='store_true',
                         help='breadth-first branch and bound search')
-    parser.add_argument('--lifo', action='store_true',
+    parser.add_argument('-lifo', '--depth_first', action='store_true',
                         help='depth-first branch and bound search')
     parser.add_argument('--num_destinations', type=int)
     parser.add_argument('--min_propagation_time', type=int, default=60)
@@ -634,9 +634,9 @@ if __name__ == '__main__':
     print(problem_setting)
 
     if args.branch_and_bound:
-        if args.fifo:
+        if args.breadth_first:
             run_bb(model, problem_setting, 'fifo')
-        elif args.lifo:
+        elif args.depth_first:
             run_bb(model, problem_setting, 'lifo')
         else:
             run_bb(model, problem_setting, 'priority')
