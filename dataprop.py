@@ -11,100 +11,6 @@ from rnet.optimize import Dijkstra, ConnectivityError
 
 
 @dataclass
-class DataPropagationChromosome:
-    '''
-    Chromosome encoding solution for the data propagation problem.
-
-    Parameters
-    ----------
-    route : :class:`~numpy.ndarray`, shape (num_dsts,)
-        Array of waypoint IDs.
-    order : :class:`~numpy.ndarray`, shape (num_dsts,)
-        Indices that sort the waypoint IDs in the order visited by
-        this solution.
-
-    Attributes
-    ----------
-    cost : float
-        Total path cost.
-    path : List[int]
-        Path encoded by this chromosome.
-    propagation_times : :class:`~numpy.ndarray`, shape (num_dsts,)
-        Propagation times for each destination.
-    is_feasible : bool
-        Whether all propagation times meet the propagation time
-        constriant.
-    '''
-
-    route: List[int]
-    order: List[int]
-    cost: float = None
-    path: List[int] = None
-    propagation_times: np.ndarray = None
-    is_feasible: bool = None
-
-    @cached_property
-    def ordered_route(self) -> List[int]:
-        '''
-        Array of waypoints in the order visited by this solution.
-
-        Returns
-        -------
-        List[int]
-        '''
-        return np.array(self.route)[self.order].tolist()
-
-
-@dataclass
-class DataPropagationPopulation:
-    '''
-    Class representing a population of chromosomes for the data
-    propagation problem.
-
-    Parameters
-    ----------
-    chromosomes : List[:class:`DataPropgataionChromosome`]
-        List of chromosomes.
-    '''
-
-    chromosomes: List[DataPropagationChromosome]
-
-    def __getitem__(self, index: Union[int, Iterable[int]]
-                    ) -> Union[DataPropagationChromosome, List[DataPropagationChromosome]]:
-        if np.issubdtype(type(index), np.integer):
-            return self.chromosomes[index]
-        else:
-            return [self.chromosomes[i] for i in index]
-
-    def __iter__(self):
-        return iter(self.chromosomes)
-
-    @cached_property
-    def best_chromosome(self) -> DataPropagationChromosome:
-        '''
-        Feasible chromosome with lowest cost.
-        '''
-        for index in np.argsort(self.costs):
-            if self[index].is_feasible:
-                return self[index]
-
-    @cached_property
-    def costs(self) -> np.ndarray:
-        '''
-        Array of chromosome costs.
-        '''
-        return np.array([chromosome.cost for chromosome in self.chromosomes])
-
-    @cached_property
-    def fitness(self) -> np.ndarray:
-        '''
-        Array of fitness values.
-        '''
-        return np.array([1/chromosome.cost if chromosome.is_feasible else 0.0
-                         for chromosome in self.chromosomes])
-
-
-@dataclass
 class DataPropagationProblemSetting:
     '''
     Problem setting for the data propagation problem.
@@ -332,6 +238,100 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
             self.best_order = order
             print(f'Improved solution: cost={final_cost:.4f},',
                   f'route={route}, order={order}')
+
+
+@dataclass
+class DataPropagationChromosome:
+    '''
+    Chromosome encoding solution for the data propagation problem.
+
+    Parameters
+    ----------
+    route : :class:`~numpy.ndarray`, shape (num_dsts,)
+        Array of waypoint IDs.
+    order : :class:`~numpy.ndarray`, shape (num_dsts,)
+        Indices that sort the waypoint IDs in the order visited by
+        this solution.
+
+    Attributes
+    ----------
+    cost : float
+        Total path cost.
+    path : List[int]
+        Path encoded by this chromosome.
+    propagation_times : :class:`~numpy.ndarray`, shape (num_dsts,)
+        Propagation times for each destination.
+    is_feasible : bool
+        Whether all propagation times meet the propagation time
+        constriant.
+    '''
+
+    route: List[int]
+    order: List[int]
+    cost: float = None
+    path: List[int] = None
+    propagation_times: np.ndarray = None
+    is_feasible: bool = None
+
+    @cached_property
+    def ordered_route(self) -> List[int]:
+        '''
+        Array of waypoints in the order visited by this solution.
+
+        Returns
+        -------
+        List[int]
+        '''
+        return np.array(self.route)[self.order].tolist()
+
+
+@dataclass
+class DataPropagationPopulation:
+    '''
+    Class representing a population of chromosomes for the data
+    propagation problem.
+
+    Parameters
+    ----------
+    chromosomes : List[:class:`DataPropgataionChromosome`]
+        List of chromosomes.
+    '''
+
+    chromosomes: List[DataPropagationChromosome]
+
+    def __getitem__(self, index: Union[int, Iterable[int]]
+                    ) -> Union[DataPropagationChromosome, List[DataPropagationChromosome]]:
+        if np.issubdtype(type(index), np.integer):
+            return self.chromosomes[index]
+        else:
+            return [self.chromosomes[i] for i in index]
+
+    def __iter__(self):
+        return iter(self.chromosomes)
+
+    @cached_property
+    def best_chromosome(self) -> DataPropagationChromosome:
+        '''
+        Feasible chromosome with lowest cost.
+        '''
+        for index in np.argsort(self.costs):
+            if self[index].is_feasible:
+                return self[index]
+
+    @cached_property
+    def costs(self) -> np.ndarray:
+        '''
+        Array of chromosome costs.
+        '''
+        return np.array([chromosome.cost for chromosome in self.chromosomes])
+
+    @cached_property
+    def fitness(self) -> np.ndarray:
+        '''
+        Array of fitness values.
+        '''
+        return np.array([1/chromosome.cost if chromosome.is_feasible else 0.0
+                         for chromosome in self.chromosomes])
 
 
 @dataclass
