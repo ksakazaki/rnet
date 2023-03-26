@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from heapq import heappop, heappush
-from functools import cached_property
+from functools import cached_property, partial
 import pickle
 from typing import Dict, Iterable, List, Set, Union
 import numpy as np
@@ -198,6 +198,20 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
     '''
 
     node_coords: np.ndarray
+    queue_type: str
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.queue = []
+        if self.queue_type == 'fifo':
+            self.push = self.queue.append
+            self.pop = partial(self.queue.pop, 0)
+        elif self.queue_type == 'lifo':
+            self.push = self.queue.append
+            self.pop = self.queue.pop
+        elif self.queue_type == 'priority':
+            self.push = partial(heappush, self.queue)
+            self.pop = partial(heappop, self.queue)
 
     def __call__(self, problem_setting: DataPropagationProblemSetting
                  ) -> List[int]:
@@ -220,7 +234,7 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         self.initialize()
 
         while self.queue:
-            cost, route, order = heappop(self.queue)
+            cost, route, order = self.pop()
             if len(route) == problem_setting.num_destinations:
                 self.update(cost, route, order)
             else:
@@ -233,16 +247,16 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         self.best_cost = np.inf
         self.best_route = None
         self.best_order = None
+        self.queue.clear()
 
         start_node_id = self.problem_setting.start_node_id
         destination_region_ids = self.problem_setting.destination_region_ids
 
-        self.queue = []
         for region_id in destination_region_ids:
             for node_id in self.border_nodes[region_id]:
                 try:
                     cost = self.shortest_path(start_node_id, node_id)
-                    heappush(self.queue, (cost, [node_id], [region_id]))
+                    self.push((cost, [node_id], [region_id]))
                 except ConnectivityError:
                     continue
 
@@ -289,7 +303,7 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
                     continue
                 if new_cost + self.heuristic(node_id) < self.best_cost:
                     new_route = route + [node_id]
-                    heappush(self.queue, (new_cost, new_route, new_order))
+                    self.push((new_cost, new_route, new_order))
 
     def update(self, cost: float, route: List[int], order: List[int]) -> None:
         '''
@@ -544,13 +558,15 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             pickle.dump(self.populations, file)
 
 
-def run_bb(model: Model, problem_setting: DataPropagationProblemSetting):
+def run_bb(model: Model, problem_setting: DataPropagationProblemSetting,
+           queue_type: str):
     global algorithm
     algorithm = DataPropagationBranchAndBound(
         model.edges.weights(),
         model.border_nodes.to_dict(),
         model.places.area_nodes(model.nodes, 500),
-        model.nodes.coords(2))
+        model.nodes.coords(2),
+        queue_type)
     algorithm(problem_setting)
 
 
@@ -575,6 +591,10 @@ if __name__ == '__main__':
     parser.add_argument('goal_node_id', nargs='?', type=int, default=-1)
     parser.add_argument('destination_region_ids', nargs='*', type=int)
     parser.add_argument('-bb', '--branch_and_bound', action='store_true')
+    parser.add_argument('--fifo', action='store_true',
+                        help='breadth-first branch and bound search')
+    parser.add_argument('--lifo', action='store_true',
+                        help='depth-first branch and bound search')
     parser.add_argument('--num_destinations', type=int)
     parser.add_argument('--min_propagation_time', type=int, default=60)
     parser.add_argument('--vehicle_speed', type=int, default=45)
@@ -614,7 +634,12 @@ if __name__ == '__main__':
     print(problem_setting)
 
     if args.branch_and_bound:
-        run_bb(model, problem_setting)
+        if args.fifo:
+            run_bb(model, problem_setting, 'fifo')
+        elif args.lifo:
+            run_bb(model, problem_setting, 'lifo')
+        else:
+            run_bb(model, problem_setting, 'priority')
 
     else:
         solver_params = DataPropagationGeneticAlgorithmParams(
