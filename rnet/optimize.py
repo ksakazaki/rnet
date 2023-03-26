@@ -105,19 +105,16 @@ class Dijkstra(Algorithm):
         ConnectivityError
             If no path exists from `start` to `goal`.
         '''
-        try:
-            assert goal in self.visited[start]
-        except (AssertionError, KeyError):
+        if (start not in self.visited) or (goal not in self.visited[start]):
             self._update(start, goal)
-        finally:
-            if return_path:
-                origins = self.origins[start]
-                path = [goal]
-                while path[0] != start:
-                    path.insert(0, origins[path[0]])
-                return self.queried[start][goal], path
-            else:
-                return self.queried[start][goal]
+        if return_path:
+            origins = self.origins[start]
+            path = [goal]
+            while path[0] != start:
+                path.insert(0, origins[path[0]])
+            return self.queried[start][goal], path
+        else:
+            return self.queried[start][goal]
 
     def _update(self, start: int, goal: int) -> None:
         visited = self.visited.setdefault(start, set())
