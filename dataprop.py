@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass
 from heapq import heappop, heappush
 from functools import cached_property, partial
@@ -249,6 +250,8 @@ class DataPropagationChromosome:
     ----------
     route : :class:`~numpy.ndarray`, shape (num_dsts,)
         Array of waypoint IDs.
+    route_indices : :class:`~numpy.ndarray`, shape (num_dsts,)
+        Indices of waypoint IDs.
     order : :class:`~numpy.ndarray`, shape (num_dsts,)
         Indices that sort the waypoint IDs in the order visited by
         this solution.
@@ -267,11 +270,13 @@ class DataPropagationChromosome:
     '''
 
     route: List[int]
+    route_indices: List[int]
     order: List[int]
     cost: float = None
     path: List[int] = None
     propagation_times: np.ndarray = None
     is_feasible: bool = None
+    evaluated: bool = False
 
     @cached_property
     def ordered_route(self) -> List[int]:
@@ -432,14 +437,20 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
         '''
         population_size = self.params.population_size
         num_destinations = self.problem_setting.num_destinations
+        all_border_nodes = [
+            np.array(self.border_nodes[region_id])
+            for region_id in self.problem_setting.destination_region_ids]
+        route_indices = np.column_stack(
+            [self.rng.choice(num_border_nodes, population_size)
+             for num_border_nodes in map(len, all_border_nodes)])
         routes = np.column_stack(
-            [self.rng.choice(self.border_nodes[region_id], population_size)
-             for region_id in self.problem_setting.destination_region_ids]).tolist()
+            [border_nodes[route_indices[:, col]]
+             for col, border_nodes in enumerate(all_border_nodes)])
         orders = np.vstack([self.rng.permutation(num_destinations)
-                            for _ in range(population_size)]).tolist()
+                            for _ in range(population_size)])
         self.populations[0] = DataPropagationPopulation([
-            DataPropagationChromosome(route, list(order))
-            for (route, order) in zip(routes, orders)])
+            DataPropagationChromosome(list(route), list(indices), list(order))
+            for (route, indices, order) in zip(routes, route_indices, orders)])
 
     def evaluate(self) -> None:
         '''
@@ -453,6 +464,8 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
         num_destinations = self.problem_setting.num_destinations
         min_propagation_time = self.problem_setting.min_propagation_time
         for chromosome in self.populations[self.iter]:
+            if chromosome.evaluated:
+                continue
             ordered_route = \
                 [start_node_id] + chromosome.ordered_route + [goal_node_id]
             chromosome.cost = 0.0
@@ -473,6 +486,7 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             else:
                 chromosome.is_feasible = \
                     np.all(chromosome.propagation_times > min_propagation_time)
+            chromosome.evaluated = True
 
     def crossover(self) -> None:
         '''
@@ -492,44 +506,68 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             parents = parent_population[
                 self.rng.choice(population_size, 2, False, probability, shuffle=False)]
             if not crossover:
-                children.extend(
-                    [DataPropagationChromosome(parents[0].route, parents[0].order),
-                     DataPropagationChromosome(parents[1].route, parents[1].order)])
+                children.extend([deepcopy(parents[0]), deepcopy(parents[1])])
                 continue
             # One-point crossover for routes
             index = self.rng.choice(num_destinations)
             route_A = parents[0].route[:index] + parents[1].route[index:]
             route_B = parents[1].route[:index] + parents[0].route[index:]
+            indices_A = parents[0].route_indices[:index] + \
+                parents[1].route_indices[index:]
+            indices_B = parents[1].route_indices[:index] + \
+                parents[0].route_indices[index:]
             # Order-based crossover for orders
             indices = self.rng.choice(
                 num_destinations, selection_size, False, shuffle=False)
             order_A = np.array(parents[0].order)
             new_order = np.array(parents[1].order)[indices]
-            order_A[np.where(np.isin(order_A, new_order))] = new_order.tolist()
+            order_A[np.where(np.isin(order_A, new_order))] = new_order
+            order_A = order_A.tolist()
             order_B = np.array(parents[1].order)
             new_order = np.array(parents[0].order)[indices]
-            order_B[np.where(np.isin(order_B, new_order))] = new_order.tolist()
+            order_B[np.where(np.isin(order_B, new_order))] = new_order
+            order_B = order_B.tolist()
             # Create children
-            children.extend([DataPropagationChromosome(route_A, order_A),
-                             DataPropagationChromosome(route_B, order_B)])
+            children.extend([DataPropagationChromosome(route_A, indices_A, order_A),
+                             DataPropagationChromosome(route_B, indices_B, order_B)])
         self.populations[self.iter] = DataPropagationPopulation(children)
 
     def mutate(self) -> None:
+        '''
+        Mutation offspring chromosomes.
+        '''
         destinations = self.problem_setting.destination_region_ids
-        mutate = self.rng.random(
-            self.params.population_size) < self.params.mutation_rate
-        regular = self.rng.random(
-            self.params.population_size) < self.params.regular_mutation_rate
-        for index, (mutate_, regular_) in enumerate(zip(mutate, regular)):
-            if not mutate_:
-                continue
-            if regular_:
-                for i, region_id in enumerate(destinations):
-                    if self.rng.random() < 0.5:
-                        self.populations[self.iter][index].route[i] = \
-                            self.rng.choice(self.border_nodes[region_id])
+        num_destinations = self.problem_setting.num_destinations
+        population_size = self.params.population_size
+        index_candidates = np.arange(
+            -self.params.neighborhood_size, self.params.neighborhood_size + 1)
+        mutate = self.rng.random(population_size) < self.params.mutation_rate
+        for index in np.flatnonzero(mutate):
+            mutate_indices = \
+                np.flatnonzero(self.rng.random(num_destinations) < 0.5)
+            if self.rng.random() < self.params.regular_mutation_rate:
+                # Perform regular mutation
+                for i in mutate_indices:
+                    region_id = destinations[i]
+                    num_border_nodes = len(self.border_nodes[region_id])
+                    new_node_index = self.rng.choice(num_border_nodes)
+                    self.populations[self.iter][index].route[i] = \
+                        self.border_nodes[region_id][new_node_index]
+                    self.populations[self.iter][index].route_indices[i] = \
+                        new_node_index
             else:
-                pass
+                # Perform local mutation
+                for i in mutate_indices:
+                    region_id = destinations[i]
+                    new_node_index = np.mod(
+                        self.populations[self.iter][index].route_indices[i]
+                        + self.rng.choice(index_candidates),
+                        len(self.border_nodes[region_id]))
+                    self.populations[self.iter][index].route[i] = \
+                        self.border_nodes[region_id][new_node_index]
+                    self.populations[self.iter][index].route_indices[i] = \
+                        new_node_index
+            self.populations[self.iter][index].evaluated = False
 
     def update_best_solution(self) -> bool:
         '''
@@ -549,7 +587,8 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             self.best_cost = best_chromosome.cost
             print(f'Improved solution: cost={best_chromosome.cost:.4f},',
                   f'route={best_chromosome.route},',
-                  f'order={best_chromosome.order}')
+                  f'order={best_chromosome.order},',
+                  f'times={best_chromosome.propagation_times.tolist()}')
             return True
         return False
 
