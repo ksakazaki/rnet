@@ -17,6 +17,7 @@ def run(func):
         result = func(self, *args, **kwargs)
         end_time = time.perf_counter()
         self.EXEC_TIMES.append(end_time - start_time)
+        self.CALL_COUNT += 1
         return result
     return wrapper
 
@@ -25,6 +26,7 @@ class Algorithm(ABC):
 
     def __init__(self):
         self.EXEC_TIMES = []
+        self.CALL_COUNT = 0
 
     def __init_subclass__(cls) -> None:
         cls.__call__ = run(cls.__call__)
@@ -34,8 +36,9 @@ class Algorithm(ABC):
     def __call__(self):
         pass
 
-    def clear(self):
+    def reset(self):
         self.EXEC_TIMES.clear()
+        self.CALL_COUNT = 0
 
 
 class Error(Exception):
