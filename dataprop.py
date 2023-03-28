@@ -36,6 +36,7 @@ class DataPropagationProblemSetting:
 
     def __post_init__(self):
         self.num_destinations = len(self.destination_region_ids)
+        self.vehicle_speed *= 1000 / 3600  # Convert vehicle speed to m/s
 
 
 @dataclass
@@ -484,6 +485,7 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
                         np.array([self.area_weights[i][j][region_id]
                                   for region_id in destination_region_ids])
             else:
+                chromosome.propagation_times /= self.problem_setting.vehicle_speed
                 chromosome.is_feasible = \
                     np.all(chromosome.propagation_times > min_propagation_time)
             chromosome.evaluated = True
