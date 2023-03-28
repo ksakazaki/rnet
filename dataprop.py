@@ -229,17 +229,55 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
             List of region IDs.
         '''
         try:
-            final_cost = cost + \
-                self.shortest_path(route[-1], self.problem_setting.goal_node_id
-                                   )
+            final_cost = cost + self.shortest_path(
+                route[-1], self.problem_setting.goal_node_id)
         except ConnectivityError:
             return
         if final_cost < self.best_cost:
+            times = self.propagation_times(route)
+            if not times:
+                return
             self.best_cost = final_cost
             self.best_route = route
             self.best_order = order
+            self.best_times = times
             print(f'Improved solution: cost={final_cost:.4f},',
-                  f'route={route}, order={order}')
+                  f'route={route}, order={order}, times={times}')
+
+    def propagation_times(self, route: List[int]) -> List[float]:
+        '''
+        Return propagation times for each destination.
+
+        Parameters
+        ----------
+        route : List[int]
+            List of waypoints.
+
+        Returns
+        -------
+        List[float]
+            Propagation times for each destination.
+        '''
+        vehicle_speed = self.problem_setting.vehicle_speed
+        min_propagation_time = self.problem_setting.min_propagation_time
+
+        # Find total path
+        total_route = [self.problem_setting.start_node_id] \
+            + route + [self.problem_setting.goal_node_id]
+        total_path = [total_route[0]]
+        for (start, goal) in zip(total_route[:-1], total_route[1:]):
+            total_path += self.shortest_path(start, goal, True)[1]
+
+        # Calculate propagation times to evaluate feasibility
+        times = []
+        for region_id in self.problem_setting.destination_region_ids:
+            dist = 0.0
+            for (i, j) in zip(total_path[:-1], total_path[1:]):
+                dist += self.area_weights[i][j][region_id]
+            times.append(dist / vehicle_speed)
+            if times[-1] < min_propagation_time:
+                return
+        return times
 
 
 @dataclass
