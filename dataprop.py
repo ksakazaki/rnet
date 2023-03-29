@@ -78,11 +78,39 @@ class DataPropagationSolver(ABC):
                 for j, weight in self.weights[i].items():
                     if i in area_border_union and j in area_border_union:
                         self.area_weights[i][j][region_id] = weight
+        for i in self.area_weights.keys():
+            for j in self.area_weights[i].keys():
+                self.area_weights[i][j] = dict(self.area_weights[i][j])
+            self.area_weights[i] = dict(self.area_weights[i])
+        self.area_weights = dict(self.area_weights)
         self.shortest_path = Dijkstra(self.weights)
 
     @abstractmethod
     def __call__(self):
         pass
+
+    def get_area_weight(self, i: int, j: int, region_id: int) -> float:
+        '''
+        Return weight of edge :math:`(i, j)` if it is contained in the
+        given region.
+
+        Parameters
+        ----------
+        i, j : int
+            Edge definition.
+        region_id : int
+            Region ID.
+
+        Returns
+        -------
+        float
+            If edge :math:`(i, j)` is contained in region `region_id`,
+            then return edge weight. Otherwise, return 0.0.
+        '''
+        try:
+            return self.area_weights[i][j][region_id]
+        except KeyError:
+            return 0.0
 
 
 @dataclass
@@ -273,7 +301,7 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         for region_id in self.problem_setting.destination_region_ids:
             dist = 0.0
             for (i, j) in zip(total_path[:-1], total_path[1:]):
-                dist += self.area_weights[i][j][region_id]
+                dist += self.get_area_weight(i, j, region_id)
             times.append(dist / vehicle_speed)
             if times[-1] < min_propagation_time:
                 return
@@ -520,7 +548,7 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
                 chromosome.path += path[1:]
                 for (i, j) in zip(path[: -1], path[1:]):
                     chromosome.propagation_times += \
-                        np.array([self.area_weights[i][j][region_id]
+                        np.array([self.get_area_weight(i, j, region_id)
                                   for region_id in destination_region_ids])
             else:
                 chromosome.propagation_times /= self.problem_setting.vehicle_speed
