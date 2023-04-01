@@ -5,10 +5,70 @@ from dataclasses import dataclass
 from heapq import heappop, heappush
 from functools import cached_property, partial
 import pickle
+import time
 from typing import Dict, Iterable, List, Set, Union
 import numpy as np
 from rnet.model import Model
 from rnet.optimize import Dijkstra, ConnectivityError
+
+
+class Timer:
+    '''
+    Timer for timing iterations during an algorithm call.
+    '''
+
+    def __init__(self):
+        self.exec_times = []
+
+    def __len__(self):
+        return len(self.exec_times)
+
+    def clear(self):
+        '''
+        Clear execution times.
+        '''
+        self.exec_times.clear()
+
+    def tic(self):
+        '''
+        Start timer.
+        '''
+        self.start = time.perf_counter()
+
+    def toc(self):
+        '''
+        Stop timer and add execution time to the :attr:`exec_times`
+        list.
+        '''
+        self.exec_times.append(time.perf_counter() - self.start)
+
+    @property
+    def min(self) -> float:
+        return np.min(self.exec_times)
+
+    @property
+    def max(self) -> float:
+        return np.max(self.exec_times)
+
+    @property
+    def avg(self) -> float:
+        return np.mean(self.exec_times)
+
+    @property
+    def sum(self) -> float:
+        return np.sum(self.exec_times)
+
+    def print_stats(self) -> None:
+        '''
+        Print minimum, maximum, average, and total execution time, as
+        well as iteration count.
+        '''
+        print(f'Recorded {len(self):,} execution times.',
+              '\nExec time (sec/iter):',
+              f'min {self.min:.04f},',
+              f'max {self.max:.04f},',
+              f'avg {self.avg:.04f},',
+              f'sum {self.sum:.04f}')
 
 
 @dataclass
@@ -84,6 +144,7 @@ class DataPropagationSolver(ABC):
             self.area_weights[i] = dict(self.area_weights[i])
         self.area_weights = dict(self.area_weights)
         self.shortest_path = Dijkstra(self.weights)
+        self.timer = Timer()
 
     @abstractmethod
     def __call__(self):
@@ -167,14 +228,22 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         self.problem_setting = problem_setting
         self.goal_coords = self.node_coords[problem_setting.goal_node_id]
 
+        self.timer.clear()
+
+        self.timer.tic()
         self.initialize()
+        self.timer.toc()
 
         while self.queue:
+            self.timer.tic()
             cost, route, order = self.pop()
             if len(route) == problem_setting.num_destinations:
                 self.update(cost, route, order)
             else:
                 self.branch(cost, route, order)
+            self.timer.toc()
+
+        self.timer.print_stats()
 
     def initialize(self) -> None:
         '''
@@ -484,19 +553,27 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
         self.populations = {}
         self.best_cost = np.inf
 
+        self.timer.clear()
+
+        self.timer.tic()
         self.iter = 0
         self.initialize()
         self.evaluate()
         self.update_best_solution()
+        self.timer.toc()
 
         for i in range(1, self.params.max_iterations + 1):
+            self.timer.tic()
             self.iter = i
             self.crossover()
             self.mutate()
             self.evaluate()
             self.update_best_solution()
+            self.timer.toc()
             if i - self.best_iteration == self.params.patience:
                 break
+
+        self.timer.print_stats()
 
     def initialize(self) -> None:
         '''
