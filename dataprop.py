@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from heapq import heappop, heappush
 from functools import cached_property, partial
+import math
 import pickle
 import time
 from typing import Dict, Iterable, List, Set, Union
@@ -71,7 +72,6 @@ class Timer:
               f'sum {self.sum:.04f}')
 
 
-@dataclass
 class DataPropagationProblemSetting:
     '''
     Problem setting for the data propagation problem.
@@ -86,17 +86,38 @@ class DataPropagationProblemSetting:
         Minimum propagation time.
     vehicle_speed : float
         Vehicle speed in km/h.
+    border_nodes : Dict[int, List[int]]
+        Dictionary mapping region ID to list of node IDs that surround
+        that region.
     '''
 
-    start_node_id: int
-    goal_node_id: int
-    destination_region_ids: List[int]
-    min_propagation_time: float
-    vehicle_speed: float
+    def __init__(self,
+                 start_node_id: int,
+                 goal_node_id: int,
+                 destination_region_ids: List[int],
+                 min_propagation_time: float,
+                 vehicle_speed: float,
+                 border_nodes: Dict[int, List[int]]):
+        self.start_node_id = start_node_id
+        self.goal_node_id = goal_node_id
+        self.destination_region_ids = destination_region_ids
+        self.num_destinations = len(destination_region_ids)
+        self.min_propagation_time = min_propagation_time
+        self.vehicle_speed = vehicle_speed * 1000 / 3600  # Vehicle speed in m/s
+        self.total_size = \
+            math.factorial(self.num_destinations) * \
+            np.prod([len(border_nodes[region])
+                     for region in self.destination_region_ids])
 
-    def __post_init__(self):
-        self.num_destinations = len(self.destination_region_ids)
-        self.vehicle_speed *= 1000 / 3600  # Convert vehicle speed to m/s
+    def __repr__(self):
+        return '\n'.join([
+            f'Start node: {self.start_node_id}',
+            f'Goal node: {self.goal_node_id}',
+            f'Destinations: {self.destination_region_ids}',
+            f'Propagation time constraint: {self.min_propagation_time} sec',
+            f'Vehicle speed: {self.vehicle_speed} m/s',
+            f'Search space size: {self.total_size:,}',
+        ])
 
 
 @dataclass
@@ -813,7 +834,8 @@ if __name__ == '__main__':
 
     problem_setting = DataPropagationProblemSetting(
         start_node_id, goal_node_id, destination_region_ids,
-        args.min_propagation_time, args.vehicle_speed)
+        args.min_propagation_time, args.vehicle_speed,
+        model.border_nodes.to_dict())
 
     print(problem_setting)
 
