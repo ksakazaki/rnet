@@ -249,6 +249,9 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         self.problem_setting = problem_setting
         self.goal_coords = self.node_coords[problem_setting.goal_node_id]
 
+        self.branch_count = 0
+        self.prune_count = 0
+
         self.timer.clear()
 
         self.timer.tic()
@@ -263,7 +266,11 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
             else:
                 self.branch(cost, route, order)
             self.timer.toc()
+            print(f'Explored {self.branch_count:,} branches,',
+                  f'pruned {self.prune_count:,}', end='\r')
 
+        print(f'Explored {self.branch_count:,} branches,',
+              f'pruned {self.prune_count:,}')
         self.timer.print_stats()
 
     def initialize(self) -> None:
@@ -325,9 +332,14 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
             for node_id in self.border_nodes[region_id]:
                 try:
                     new_cost = cost + self.shortest_path(last_node_id, node_id)
-                except ConnectivityError:
+                    assert new_cost + self.heuristic(node_id) < self.best_cost
+                except (ConnectivityError, AssertionError):
+                    self.prune_count += \
+                        np.prod([len(self.border_nodes[region])
+                                 for region in remaining_region_ids
+                                 if region != region_id], dtype=int)
                     continue
-                if new_cost + self.heuristic(node_id) < self.best_cost:
+                else:
                     new_route = route + [node_id]
                     self.push((new_cost, new_route, new_order))
 
@@ -346,6 +358,7 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
         order : List[int]
             List of region IDs.
         '''
+        self.branch_count += 1
         try:
             final_cost = cost + self.shortest_path(
                 route[-1], self.problem_setting.goal_node_id)
