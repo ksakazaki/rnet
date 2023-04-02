@@ -715,6 +715,7 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
         '''
         Mutation offspring chromosomes.
         '''
+        population = self.populations[self.iter]
         destinations = self.problem_setting.destination_region_ids
         num_destinations = self.problem_setting.num_destinations
         population_size = self.params.population_size
@@ -725,28 +726,35 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             mutate_indices = \
                 np.flatnonzero(self.rng.random(num_destinations) < 0.5)
             if self.rng.random() < self.params.regular_mutation_rate:
-                # Perform regular mutation
+                # Perform global mutation
                 for i in mutate_indices:
                     region_id = destinations[i]
                     num_border_nodes = len(self.border_nodes[region_id])
                     new_node_index = self.rng.choice(num_border_nodes)
-                    self.populations[self.iter][index].route[i] = \
+                    population[index].route[i] = \
                         self.border_nodes[region_id][new_node_index]
-                    self.populations[self.iter][index].route_indices[i] = \
+                    population[index].route_indices[i] = \
                         new_node_index
+                i, j = self.rng.choice(num_destinations, 2, replace=False)
+                population[index].order[i], population[index].order[j] = \
+                    population[index].order[j], population[index].order[i]
             else:
                 # Perform local mutation
                 for i in mutate_indices:
                     region_id = destinations[i]
                     new_node_index = np.mod(
-                        self.populations[self.iter][index].route_indices[i]
+                        population[index].route_indices[i]
                         + self.rng.choice(index_candidates),
                         len(self.border_nodes[region_id]))
-                    self.populations[self.iter][index].route[i] = \
+                    population[index].route[i] = \
                         self.border_nodes[region_id][new_node_index]
-                    self.populations[self.iter][index].route_indices[i] = \
+                    population[index].route_indices[i] = \
                         new_node_index
-            self.populations[self.iter][index].evaluated = False
+                i = self.rng.choice(num_destinations - 1)
+                j = i + 1
+                population[index].order[i], population[index].order[j] = \
+                    population[index].order[j], population[index].order[i]
+            population[index].evaluated = False
 
     def update_best_solution(self) -> bool:
         '''
