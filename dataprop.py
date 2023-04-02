@@ -69,7 +69,7 @@ class Timer:
               f'min {self.min:.04f},',
               f'max {self.max:.04f},',
               f'avg {self.avg:.04f},',
-              f'sum {self.sum:.04f}')
+              f'total {self.sum:.04f}')
 
 
 class DataPropagationProblemSetting:
@@ -373,7 +373,7 @@ class DataPropagationBranchAndBound(DataPropagationSolver):
             self.best_order = order
             self.best_times = times
             print(f'Improved solution: cost={final_cost:.4f},',
-                  f'route={route}, order={order}, times={times}')
+                  f'route={route}, order={order}, times={np.round(times, 2)}')
 
     def propagation_times(self, route: List[int]) -> List[float]:
         '''
@@ -767,7 +767,7 @@ class DataPropagationGeneticAlgorithm(DataPropagationSolver):
             print(f'Improved solution: cost={best_chromosome.cost:.4f},',
                   f'route={best_chromosome.route},',
                   f'order={best_chromosome.order},',
-                  f'times={best_chromosome.propagation_times.tolist()}')
+                  f'times={np.round(best_chromosome.propagation_times, 2)}')
             return True
         return False
 
