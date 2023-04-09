@@ -111,8 +111,8 @@ class DataPropagationProblemSetting:
         self.vehicle_speed = vehicle_speed * 1000 / 3600  # Vehicle speed in m/s
         self.search_space_size = int(
             math.factorial(self.num_destinations) *
-            np.prod([len(border_nodes[region])
-                     for region in self.destination_region_ids]))
+            math.prod([len(border_nodes[region])
+                       for region in self.destination_region_ids]))
 
     def __repr__(self):
         return '\n'.join([
