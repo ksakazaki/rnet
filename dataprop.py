@@ -137,7 +137,7 @@ class DataPropagationProblemSetting:
             Output YAML path.
         '''
         with open(output_path, 'w') as file:
-            safe_dump(self.to_dict(), file, indent=2)
+            safe_dump(self.to_dict(), file, indent=2, default_flow_style=None)
 
 
 @dataclass
