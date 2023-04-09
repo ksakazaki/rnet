@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from heapq import heappop, heappush
 from functools import cached_property, partial
 import math
 import pickle
 import time
-from typing import Dict, Iterable, List, Set, Union
+from typing import Any, Dict, Iterable, List, Set, Union
+from yaml import safe_dump
 import numpy as np
 from rnet.model import Model
 from rnet.optimize import Dijkstra, ConnectivityError
@@ -91,6 +92,10 @@ class DataPropagationProblemSetting:
         that region.
     '''
 
+    __slots__ = ['start_node_id', 'goal_node_id', 'destination_region_ids',
+                 'num_destinations', 'min_propagation_time', 'vehicle_speed',
+                 'search_space_size']
+
     def __init__(self,
                  start_node_id: int,
                  goal_node_id: int,
@@ -104,10 +109,10 @@ class DataPropagationProblemSetting:
         self.num_destinations = len(destination_region_ids)
         self.min_propagation_time = min_propagation_time
         self.vehicle_speed = vehicle_speed * 1000 / 3600  # Vehicle speed in m/s
-        self.total_size = \
-            math.factorial(self.num_destinations) * \
+        self.search_space_size = int(
+            math.factorial(self.num_destinations) *
             np.prod([len(border_nodes[region])
-                     for region in self.destination_region_ids])
+                     for region in self.destination_region_ids]))
 
     def __repr__(self):
         return '\n'.join([
@@ -116,8 +121,23 @@ class DataPropagationProblemSetting:
             f'Destinations: {self.destination_region_ids}',
             f'Propagation time constraint: {self.min_propagation_time} sec',
             f'Vehicle speed: {self.vehicle_speed} m/s',
-            f'Search space size: {self.total_size:,}',
+            f'Search space size: {self.search_space_size:,}',
         ])
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {name: getattr(self, name) for name in self.__slots__}
+
+    def to_yaml(self, output_path: str) -> None:
+        '''
+        Save genetic algorithm parameters in YAML format.
+
+        Parameters
+        ----------
+        output_path : str
+            Output YAML path.
+        '''
+        with open(output_path, 'w') as file:
+            safe_dump(self.to_dict(), file, indent=2)
 
 
 @dataclass
@@ -545,6 +565,18 @@ class DataPropagationGeneticAlgorithmParams:
     neighborhood_size: int
     max_iterations: int
     patience: int
+
+    def to_yaml(self, output_path: str) -> None:
+        '''
+        Save genetic algorithm parameters in YAML format.
+
+        Parameters
+        ----------
+        output_path : str
+            Output YAML path.
+        '''
+        with open(output_path, 'w') as file:
+            safe_dump(asdict(self), file, indent=2)
 
 
 @dataclass
