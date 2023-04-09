@@ -566,6 +566,17 @@ class DataPropagationGeneticAlgorithmParams:
     max_iterations: int
     patience: int
 
+    def __repr__(self):
+        return '\n'.join([
+            f'Population size: {self.population_size:,}',
+            f'Crossover rate: {self.crossover_rate}',
+            f'Selection size: {self.selection_size}',
+            f'Mutation rate: {self.mutation_rate}',
+            f'Regular mutation rate: {self.regular_mutation_rate}',
+            f'Max iterations: {self.max_iterations:,}',
+            f'Patience: {self.patience:,}',
+        ])
+
     def to_yaml(self, output_path: str) -> None:
         '''
         Save genetic algorithm parameters in YAML format.
@@ -905,4 +916,5 @@ if __name__ == '__main__':
             args.population_size, args.crossover_rate, args.selection_size,
             args.mutation_rate, args.regular_mutation_rate,
             args.neighborhood_size, args.max_iterations, args.patience)
+        print(solver_params)
         run_ga(model, solver_params, problem_setting, args.output)
